@@ -1,0 +1,16 @@
+The SNAP dataset includes MRI and psych data from 60 mothers 3 months postpartum. This repository includes all code and instructions for putting the data in BIDS structure.
+
+1. Deidentifying DICOMS: Batch Anonymization of the DICOMS using DicomBrowser https://nrg.wustl.edu/software/dicom-browser/
+
+2. Conversion to .nii and BIDS structure: Anonymized DICOMs were converted to .nii and put into BIDS stucture using dicm2nii (https://github.com/xiangruili/dicm2nii).
+
+3. Defacing .nii: SNAP anatomical .nii were defaced with pydeface (https://github.com/poldracklab/pydeface).
+
+4. Assembling metadata:
+    README 
+    dataset_description.json 
+    participants.tsv 
+    task-<>_events.json 
+    (?) .jsons to supply missing data
+
+5. BIDS Validation: The full PAMD dataset was validated using bids-validator (https://bids-standard.github.io/bids-validator/).
