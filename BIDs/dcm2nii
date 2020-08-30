@@ -1,0 +1,46 @@
+#Convert the raw .dcm files into BIDS-compatible .nii
+
+#1. In matlab, run dicm2nii converter
+cd CALM/Projects/BIDs_Code/dicm2nii-master
+dicm2nii
+
+2. Select the participant's anonymized dicom files ~/CALM/Data/CALM_fMRI/AnonDcm/CALM###
+3. Select output directory: ~/CALM/Data/CALM_fMRI/CALM_BIDs
+
+4. Check presets:
+      Output format: BIDS
+    Ensure the following are checked:
+      Compress
+      Left-had storage
+      Store PatientName
+      #Use parfor if needed
+      Use SeriesInstanceUID if exists
+      Save json file
+
+5. Click “Start conversion”
+
+6. Check that the following fields are correct:
+  Subject: XXX (only three-digit participant #)
+  Session: Blank
+  AcquisitionDate: NaT
+  Comment: Blank
+
+    Name					      Type		Modality (this will be the output file name)
+
+  AAHead_Scout	                        skip	      skip
+  fmap_acq_2p5mm_dir_AP	                  fmap	      run-01_dir-AP_epi
+  fmap_acq_2p5mm_dir_PA	                  fmap	      run-01_dir-PA_epi
+  func_task_rest_run_01_dir_PA_SBref      func	      task-rest_run-01_sbref
+  func_task_rest_run_01_dir_PA	      func	      task-rest_run-01_bold
+  func_task_rest_run_02_dir_PA_SBref      func	      task-altrest_run-02_sbref
+  func_task_rest_run_02_dir_PA	      func	      task-altrest_run-02_bold
+  anat_T1w_acq_MPRAGE	                  anat	      T1w
+  fmap_acq_2p5mm_dir_AP	                  fmap	      run-03_dir-AP_epi
+  fmap_acq_2p5mm_dir_PA	                  fmap	      run-03_dir-PA_epi
+  func_task_task1_run_03_dir_PA_SBref     func	      task-infant_run-03_sbref
+  func_task_task1_run_03_dir_PA	      func	      task-infant_run-03_bold
+  func_task_task2_run_04_dir_PA_SBref     func	      task-infant_run-04_sbref
+  func_task_task2_run_04_dir_PA	      func	      task-infant_run-04_bold
+
+    
+7. Hit "ok" and let it run.
