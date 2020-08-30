@@ -1,11 +1,11 @@
 #Convert the raw .dcm files into BIDS-compatible .nii
 
 #1. In matlab, run dicm2nii converter
-cd CALM/Projects/BIDs_Code/dicm2nii-master
+cd SNAP/Projects/BIDs_Code/dicm2nii-master
 dicm2nii
 
-2. Select the participant's anonymized dicom files ~/CALM/Data/CALM_fMRI/AnonDcm/CALM###
-3. Select output directory: ~/CALM/Data/CALM_fMRI/CALM_BIDs
+2. Select the participant's anonymized dicom files ~/SNAP/Data/...
+3. Select output directory: ~/SNAP/Data/...
 
 4. Check presets:
       Output format: BIDS
@@ -20,27 +20,41 @@ dicm2nii
 5. Click “Start conversion”
 
 6. Check that the following fields are correct:
-  Subject: XXX (only three-digit participant #)
+  Subject: XXXXX (only five-digit participant #)
   Session: Blank
   AcquisitionDate: NaT
   Comment: Blank
 
+SNAP1
     Name					      Type		Modality (this will be the output file name)
 
-  AAHead_Scout	                        skip	      skip
-  fmap_acq_2p5mm_dir_AP	                  fmap	      run-01_dir-AP_epi
-  fmap_acq_2p5mm_dir_PA	                  fmap	      run-01_dir-PA_epi
-  func_task_rest_run_01_dir_PA_SBref      func	      task-rest_run-01_sbref
-  func_task_rest_run_01_dir_PA	      func	      task-rest_run-01_bold
-  func_task_rest_run_02_dir_PA_SBref      func	      task-altrest_run-02_sbref
-  func_task_rest_run_02_dir_PA	      func	      task-altrest_run-02_bold
-  anat_T1w_acq_MPRAGE	                  anat	      T1w
-  fmap_acq_2p5mm_dir_AP	                  fmap	      run-03_dir-AP_epi
-  fmap_acq_2p5mm_dir_PA	                  fmap	      run-03_dir-PA_epi
-  func_task_task1_run_03_dir_PA_SBref     func	      task-infant_run-03_sbref
-  func_task_task1_run_03_dir_PA	      func	      task-infant_run-03_bold
-  func_task_task2_run_04_dir_PA_SBref     func	      task-infant_run-04_sbref
-  func_task_task2_run_04_dir_PA	      func	      task-infant_run-04_bold
+  MPRAGE    	                        anat	      T1w
+  AxialT2                                 anat        inplaneT2
+  Block_1_Resting_State_180_BR_           func        task-rest_run-01_bold
+  Block_2_Match_242_BR_                   func        task-match_run-02_bold       
+  Block_3_Star_106_BR_                    func        task-star_run-03_bold
+  Block_4_Catch_self_paced_varying..      func        task-catch_run-04_bold
+  Block_5_Driving                         func        task-driving_run-05_bold
+  Block_6_People_1                        func        task-people1_run-06_bold
+  Block_7_People_2                        func        task-people2_run-07_bold
 
+SNAP2
+    Name					      Type		Modality (this will be the output file name)
+
+  MPRAGE    	                        anat	      T1w
+  AxialT2                                 anat        inplaneT2
+  Block_1_Opinions                        func        task-opinions_run-01_bold     
+  Block_2_Reactions                       func        task-reactions_run-02_bold       
+  Block_3_Cyberball                       func        task-cyberball_run-03_bold
+  Block_4_Star                            func        task-star_run-04_bold
+  
+SNAP2
+    Name					      Type		Modality (this will be the output file name)
+
+  MPRAGE    	                        anat	      T1w
+  BOLD_Catch                              func        task-catch_run-01_bold     
+  BOLD_Dot                                func        task-dot_run-02_bold       
+  BOLD_Opinion                            func        task-opinion_run-03_bold
+  BOLD_Reaction                           func        task-reaction_run-04_bold
     
 7. Hit "ok" and let it run.
