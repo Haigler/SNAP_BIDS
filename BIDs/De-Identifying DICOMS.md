@@ -10,11 +10,12 @@
 + ContentDate
 + PerformingPhysicianName
 + PatientName
++ PatientID
 + PatientBirthDate
-+ PatientAge
 + PatientSize
 + PatientWeight
 + Private_0029_1019
++ PerformedProcedureStepStartDate
 
 ## 5. Save these DICOMS in CALM/Data/CALM_fMRI/AnonDcm with -anon appended.
 
