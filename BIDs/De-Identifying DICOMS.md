@@ -17,6 +17,6 @@
 + Private_0029_1019
 + PerformedProcedureStepStartDate
 
-## 5. Save these DICOMS in CALM/Data/CALM_fMRI/AnonDcm with -anon appended.
+## 5. Save these DICOMS in SNAP/Data/BIDS/AnonDcm/Snap# -anon appended.
 
 http://dicomlookup.com/ is a resource which can help find tags.
