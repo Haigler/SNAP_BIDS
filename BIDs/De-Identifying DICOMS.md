@@ -9,6 +9,7 @@
 + SeriesDate
 + AcquisitionDate
 + ContentDate
++ ReferringPhysicianName
 + PerformingPhysicianName
 + PatientName
 + PatientID
