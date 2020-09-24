@@ -30,31 +30,31 @@ SNAP1
 
   MPRAGE    	                        anat	      T1w
   AxialT2                                 anat        inplaneT2
-  Block_1_Resting_State_180_BR_           func        task-rest_run-01_bold
-  Block_2_Match_242_BR_                   func        task-match_run-02_bold       
-  Block_3_Star_106_BR_                    func        task-star_run-03_bold
-  Block_4_Catch_self_paced_varying..      func        task-catch_run-04_bold
+  Block_1_Resting_State_180_BR_           func        task-resting_run-01_bold
+  Block_2_Match_242_BR_                   func        task-emotion_run-02_bold       
+  Block_3_Star_106_BR_                    func        task-dotprobe_run-03_bold
+  Block_4_Catch_self_paced_varying..      func        task-cyberball_run-04_bold
   Block_5_Driving                         func        task-driving_run-05_bold
-  Block_6_People_1                        func        task-people1_run-06_bold
-  Block_7_People_2                        func        task-people2_run-07_bold
+  Block_6_People_1                        func        task-mingroup1_run-06_bold
+  Block_7_People_2                        func        task-mingroup2_run-07_bold
 
 SNAP2
     Name					      Type		Modality (this will be the output file name)
 
   MPRAGE    	                        anat	      T1w
   AxialT2                                 anat        inplaneT2
-  Block_1_Opinions                        func        task-opinions_run-01_bold     
-  Block_2_Reactions                       func        task-reactions_run-02_bold       
+  Block_1_Opinions                        func        task-feedback_run-01_bold     
+  Block_2_Reactions                       func        task-gonogo_run-02_bold       
   Block_3_Cyberball                       func        task-cyberball_run-03_bold
-  Block_4_Star                            func        task-star_run-04_bold
+  Block_4_Star                            func        task-dotprobe_run-04_bold
   
 SNAP2
     Name					      Type		Modality (this will be the output file name)
 
   MPRAGE    	                        anat	      T1w
-  BOLD_Catch                              func        task-catch_run-01_bold     
-  BOLD_Dot                                func        task-dot_run-02_bold       
-  BOLD_Opinion                            func        task-opinion_run-03_bold
-  BOLD_Reaction                           func        task-reaction_run-04_bold
+  BOLD_Catch                              func        task-cyberball_run-01_bold     
+  BOLD_Dot                                func        task-dotprobe_run-02_bold       
+  BOLD_Opinion                            func        task-feedback_run-03_bold
+  BOLD_Reaction                           func        task-gonogo_run-04_bold
     
 7. Hit "ok" and let it run.
