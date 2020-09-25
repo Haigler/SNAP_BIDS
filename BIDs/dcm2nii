@@ -52,9 +52,11 @@ SNAP2
     Name					      Type		Modality (this will be the output file name)
 
   MPRAGE    	                        anat	      T1w
-  BOLD_Catch                              func        task-cyberball_run-01_bold     
-  BOLD_Dot                                func        task-dotprobe_run-02_bold       
-  BOLD_Opinion                            func        task-feedback_run-03_bold
-  BOLD_Reaction                           func        task-gonogo_run-04_bold
+  AxialT2                                 anat        inplaneT2
+  BOLD_Opinion                            func        task-feedback_run-01_bold
+  BOLD_Reaction                           func        task-gonogo_run-02_bold
+  BOLD_Catch                              func        task-cyberball_run-03_bold     
+  BOLD_Dot                                func        task-dotprobe_run-04_bold       
+
     
 7. Hit "ok" and let it run.
