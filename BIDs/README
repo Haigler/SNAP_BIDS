@@ -9,8 +9,9 @@ The SNAP dataset includes MRI and psych data from 60 mothers 3 months postpartum
 4. Assembling metadata:
     README 
     dataset_description.json 
-    participants.tsv 
-    task-<>_events.json 
+    participants.tsv
+    participants.json
+    task-<>_events.json
     (?) .jsons to supply missing data
 
 5. BIDS Validation: The full PAMD dataset was validated using bids-validator (https://bids-standard.github.io/bids-validator/).
