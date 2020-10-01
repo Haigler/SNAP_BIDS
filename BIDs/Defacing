@@ -12,7 +12,7 @@ pip install pydeface
 conda activate pydeface
 
 #Subject by subject apply pydeface
-pydeface ~/SNAP/Data/BIDS/SNAP#/rawdata/sub-#####/anat/sub-01003_T1w.nii.gz --outfile ~/SNAP/Data/BIDS/SNAP#/rawdata/sub-#####/anat/sub-#####_T1w.nii.gz --force
+pydeface ~/SNAP/Data/BIDS/SNAP#/rawdata/sub-#####/anat/sub-#####_T1w.nii.gz --outfile ~/SNAP/Data/BIDS/SNAP#/rawdata/sub-#####/anat/sub-#####_T1w.nii.gz --force
 pydeface ~/SNAP/Data/BIDS/SNAP#/rawdata/sub-#####/anat/sub-#####_inplaneT2.nii.gz --outfile ~/SNAP/Data/BIDS/SNAP#/rawdata/sub-#####/anat/sub-#####_inplaneT2.nii.gz --force
 
 #BATCH ALL SUBJECTS
