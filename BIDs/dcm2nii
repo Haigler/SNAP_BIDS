@@ -1,7 +1,7 @@
 #Convert the raw .dcm files into BIDS-compatible .nii
 
 #1. In matlab, run dicm2nii converter
-cd SNAP/Projects/BIDs_Code/dicm2nii-master
+cd SNAP/Projects/BIDs-Conversion/katie/Code/dicm2nii-master
 dicm2nii
 
 2. Select the participant's anonymized dicom files ~/SNAP/Data/...
