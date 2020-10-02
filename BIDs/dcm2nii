@@ -4,8 +4,8 @@
 cd SNAP/Projects/BIDs-Conversion/katie/Code/dicm2nii-master
 dicm2nii
 
-2. Select the participant's anonymized dicom files ~/SNAP/Data/...
-3. Select output directory: ~/SNAP/Data/...
+2. Select the participant's anonymized dicom files ~/SNAP/Data/BIDS/SNAP#/AnonDcm
+3. Select output directory: ~/SNAP/Data/BIDS/SNAP#/RawData
 
 4. Check presets:
       Output format: BIDS
@@ -48,7 +48,7 @@ SNAP2
   Block_3_Cyberball                       func        task-cyberball_run-03_bold
   Block_4_Star                            func        task-dotprobe_run-04_bold
   
-SNAP2
+SNAP3
     Name					      Type		Modality (this will be the output file name)
 
   MPRAGE    	                        anat	      T1w
