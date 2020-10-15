@@ -58,5 +58,6 @@ SNAP3
   BOLD_Catch                              func        task-cyberball_run-01_bold     
   BOLD_Dot                                func        task-dotprobe_run-01_bold       
 
-*If there are two runs of the same task, check the scan notes to see if there was a file-naming error. If not, change "run-01" to "run-02"    
+*If there are two runs of the same task, check the scan notes to see if the task was repeated. If so change "run-01" to "run-02" for the second run of the task.
+
 7. Hit "ok" and let it run.
