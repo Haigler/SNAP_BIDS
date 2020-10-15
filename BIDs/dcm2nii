@@ -31,12 +31,12 @@ SNAP1
   MPRAGE    	                        anat	      T1w
   AxialT2                                 anat        inplaneT2
   Block_1_Resting_State_180_BR_           func        task-resting_run-01_bold
-  Block_2_Match_242_BR_                   func        task-emotion_run-02_bold       
-  Block_3_Star_106_BR_                    func        task-dotprobe_run-03_bold
-  Block_4_Catch_self_paced_varying..      func        task-cyberball_run-04_bold
-  Block_5_Driving                         func        task-driving_run-05_bold
-  Block_6_People_1                        func        task-mingroup1_run-06_bold
-  Block_7_People_2                        func        task-mingroup2_run-07_bold
+  Block_2_Match_242_BR_                   func        task-emotion_run-01_bold       
+  Block_3_Star_106_BR_                    func        task-dotprobe_run-01_bold
+  Block_4_Catch_self_paced_varying..      func        task-cyberball_run-01_bold
+  Block_5_Driving                         func        task-driving_run-01_bold
+  Block_6_People_1                        func        task-mingroup1_run-01_bold
+  Block_7_People_2                        func        task-mingroup2_run-01_bold
 
 SNAP2
     Name					      Type		Modality (this will be the output file name)
@@ -44,9 +44,9 @@ SNAP2
   MPRAGE    	                        anat	      T1w
   AxialT2                                 anat        inplaneT2
   Block_1_Opinions                        func        task-feedback_run-01_bold     
-  Block_2_Reactions                       func        task-gonogo_run-02_bold       
-  Block_3_Cyberball                       func        task-cyberball_run-03_bold
-  Block_4_Star                            func        task-dotprobe_run-04_bold
+  Block_2_Reactions                       func        task-gonogo_run-01_bold       
+  Block_3_Cyberball                       func        task-cyberball_run-01_bold
+  Block_4_Star                            func        task-dotprobe_run-01_bold
   
 SNAP3
     Name					      Type		Modality (this will be the output file name)
@@ -54,9 +54,9 @@ SNAP3
   MPRAGE    	                        anat	      T1w
   AxialT2                                 anat        inplaneT2
   BOLD_Opinion                            func        task-feedback_run-01_bold
-  BOLD_Reaction                           func        task-gonogo_run-02_bold
-  BOLD_Catch                              func        task-cyberball_run-03_bold     
-  BOLD_Dot                                func        task-dotprobe_run-04_bold       
+  BOLD_Reaction                           func        task-gonogo_run-01_bold
+  BOLD_Catch                              func        task-cyberball_run-01_bold     
+  BOLD_Dot                                func        task-dotprobe_run-01_bold       
 
-    
+*If there are two runs of the same task, check the scan notes to see if there was a file-naming error. If not, change "run-01" to "run-02"    
 7. Hit "ok" and let it run.
