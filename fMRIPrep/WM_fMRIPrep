@@ -1,0 +1,18 @@
+#This script is written for working in an Ubuntu WSL 2 shell with Docker enabled
+#Before running, download a freesurfer license (https://surfer.nmr.mgh.harvard.edu/registration.html), create "freesurfer" directory in derivatives directory, and place the license there.
+
+#Create fmriprep docker image
+docker run -it poldracklab/fmriprep:20.2.0 --version
+
+#Run fMRIPrep on a subject
+docker run -ti --rm -v /mnt/c/Users/kathe/Documents/SNAPMRITest:/data:ro -v /mnt/c/Users/kathe/Documents/SNAPMRITest/derivatives:/out -v /mnt/c/Users/kathe/Documents/SNAPMRITest/derivatives/freesurfer/license.txt:/opt/freesurfer/license.txt poldracklab/fmriprep:latest /data /out participant \
+    --participant_label 12 \
+    --ignore fieldmaps \
+    --ignore slicetiming \
+    --output-spaces MNI152NLin2009cAsym \
+    --bold2t1w-dof 9 \
+    --return-all-components \
+    --skull-strip-template OASIS30ANTs \
+    --write-graph \
+    --stop-on-first-crash \
+    --fs-no-reconall
