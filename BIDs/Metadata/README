@@ -1,0 +1,62 @@
+**NAME Dataset TK**
+
+
+**Authors**
+ TK
+
+*DATASET DESCRIPTION TK*
+
+
+**Citation**
+TK
+
+**Acknowledgments**
+TK
+
+**Funding**
+TK 
+
+**Contact**
+TK
+
+**References**
+TK
+
+
+**MRI Acquisition**
+TK
+
+**Participants**
+TK 
+
+
+**Study overview**
+TK
+
+**Asssessment data**
+TK
+
+
+**Post-scan ratings**
+TK
+
+**MRI Tasks**
+
+*TASK NAME TK*
+
+    File Name: task-TK 
+
+TASK DESCRIPTION TK
+
+
+**.Nii to BIDs**
+
+The raw DICOMs were anonymized and converted to BIDS format using the following procedure (for more details, seehttps://github.com/Haigler/SNAP_BIDS/). 
+
+1. Deidentifying DICOMS: Batch Anonymization of the DICOMS using DicomBrowser (https://nrg.wustl.edu/software/dicom-browser/) 
+
+2. Conversion to .nii and BIDS structure: Anonymized DICOMs were converted to .nii and put into BIDS structure using dicm2nii (https://github.com/xiangruili/dicm2nii). 
+
+3. Defacing .nii: PAMD anatomical .nii were defaced with pydeface (https://github.com/poldracklab/pydeface).
+
+4. BIDS Validation: The full PAMD dataset was validated using bids-validator (https://github.com/bids-standard/bids-validator). 
