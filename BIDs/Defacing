@@ -1,4 +1,4 @@
-#DEFACNG PAMD ANAT .NII
+#DEFACNG SNAP ANAT .NII
 
 #FIRST TIME ONLY: Creating Anaconda Defacing Environment
 conda create --name pydeface
@@ -14,11 +14,5 @@ conda activate pydeface
 #Subject by subject apply pydeface
 pydeface ~/SNAP/Data/BIDS/SNAP#/rawdata/sub-#####/anat/sub-#####_T1w.nii.gz --outfile ~/SNAP/Data/BIDS/SNAP#/rawdata/sub-#####/anat/sub-#####_T1w.nii.gz --force
 pydeface ~/SNAP/Data/BIDS/SNAP#/rawdata/sub-#####/anat/sub-#####_inplaneT2.nii.gz --outfile ~/SNAP/Data/BIDS/SNAP#/rawdata/sub-#####/anat/sub-#####_inplaneT2.nii.gz --force
-
-#BATCH ALL SUBJECTS
-
-conda activate pydeface
-
-#Employ the code in deface-nii.sh
 
 #Open the defaced files in fsleyes to ensure that they've been successfully defaced and no brain tissues has been erased.
