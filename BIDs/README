@@ -1,4 +1,4 @@
-The SNAP dataset includes MRI and psych data from 60 mothers 3 months postpartum. This repository includes all code and instructions for putting the data in BIDS structure.
+The SNAP dataset includes MRI and psych data 138 adolescents. This repository includes all code and instructions for putting the data in BIDS structure.
 
 1. Deidentifying DICOMS: Batch Anonymization of the DICOMS using DicomBrowser https://nrg.wustl.edu/software/dicom-browser/
 
