@@ -1,0 +1,37 @@
+#Prior to building the singularity container, download a freesurfer license (https://surfer.nmr.mgh.harvard.edu/registration.html) and place it in a folder named "freesurfer" in /Code
+
+#BUILD THE SINGULARITY CONTAINER
+singularity build --tmpdir /home/katie/SNAP/Projects/BIDS-Conversion/katie/Code/tmp /home/katie/SNAP/Projects/BIDS-Conversion/katie/Code/fmriprep-20.2.1.simg docker://poldracklab/fmriprep:20.2.1
+
+#RUN fMRIPrep - Static Functional Connectivity (sFC) and Activation Analyses (Uses ICA Aroma denoising)
+TMPDIR=/home/katie/SNAP/Projects/BIDS-Conversion/katie/Code/tmp \
+    singularity run --fakeroot --cleanenv -B /home/katie/SNAP/Data/BIDS/SNAP1/rawdata:/data,/home/katie/SNAP/Data/BIDS/SNAP1/derivatives/fmriprep_sFCandActivation:/out,/home/katie/SNAP/Projects/BIDS-Conversion/katie/Code/fmriprep fmriprep-20.2.0.simg \
+    /data /out \
+    participant \
+    --participant-label 01003  \
+    --ignore fieldmaps \
+    --ignore slicetiming \
+    --output-spaces MNIPediatricAsym:cohort-6 \
+    --skull-strip-template OASIS30ANTs \
+    --bold2t1w-dof 9 \
+    --return-all-components \
+    --use-aroma \
+    --stop-on-first-crash \
+    --fs-no-reconall \
+    --fs-license-file /freesurfer/license.txt
+    
+#RUN fMRIPrep - Dynamic Functional Connectivity (dFC) Analyses (no ICA Aroma denoising)
+TMPDIR=/home/katie/SNAP/Projects/BIDS-Conversion/katie/Code/tmp \
+    singularity run --fakeroot --cleanenv -B /home/katie/SNAP/Data/BIDS/SNAP1/rawdata:/data,/home/katie/SNAP/Data/BIDS/SNAP1/derivatives/fmriprep_dFC:/out,/home/katie/SNAP/Projects/BIDS-Conversion/katie/Code/fmriprep fmriprep-20.2.0.simg \
+    /data /out \
+    participant \
+    --participant-label 01003  \
+    --ignore fieldmaps \
+    --ignore slicetiming \
+    --output-spaces MNIPediatricAsym:cohort-6 \
+    --skull-strip-template OASIS30ANTs \
+    --bold2t1w-dof 9 \
+    --return-all-components \
+    --stop-on-first-crash \
+    --fs-no-reconall \
+    --fs-license-file /freesurfer/license.txt
