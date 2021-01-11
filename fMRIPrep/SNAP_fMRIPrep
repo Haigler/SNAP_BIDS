@@ -27,6 +27,7 @@ TMPDIR=/mnt/magaj/SNAP/Projects/BIDS-Conversion/katie/Code/tmp \
     --bold2t1w-dof 9 \
     --stop-on-first-crash \
     --fs-no-reconall \
+    --use-aroma
     --md-only-boilerplate \
     --notrack \
     --fs-license-file /freesurfer/license.txt \
