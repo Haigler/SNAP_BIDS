@@ -8,14 +8,14 @@
 #Replace NAME with your name all lowercase
 singularity build --tmpdir /mnt/magaj/SNAP/Projects/fMRIPrep/NAME/Code/tmp /mnt/magaj/SNAP/Projects/BfMRIPrep/NAME/Code/fmriprep-20.2.1.simg docker://poldracklab/fmriprep:20.2.1
 
-#RUN fMRIPrep - Static Functional Connectivity (sFC) and Activation Analyses (Uses ICA Aroma denoising)
+#RUN fMRIPrep
 #Replace SNAP# with the correct SNAP
 #Replace ##### with the participant number
 #Replace NAME with your name all lowercase
 
 cd /mnt/magaj/SNAP/Projects/fMRIPrep/NAME/Code/
 
-TMPDIR=/mnt/magaj/SNAP/Projects/BIDS-Conversion/katie/Code/tmp \
+TMPDIR=/mnt/magaj/SNAP/Projects/fMRIPrep/NAME/Code/tmp \
     singularity run --fakeroot --cleanenv -B /mnt/magaj/SNAP/Data/BIDS/SNAP#/rawdata:/data,/mnt/magaj/SNAP/Data/BIDS/SNAP#/derivatives/fmriprep:/out,/mnt/magaj/SNAP/Projects/fMRIPrep/NAME/Code/freesurfer:/freesurfer,/mnt/magaj/SNAP/Projects/fMRIPrep/NAME/Code/tmp:/tmp  fmriprep-20.2.0.simg \
     /data /out \
     participant \
@@ -27,7 +27,7 @@ TMPDIR=/mnt/magaj/SNAP/Projects/BIDS-Conversion/katie/Code/tmp \
     --bold2t1w-dof 9 \
     --stop-on-first-crash \
     --fs-no-reconall \
-    --use-aroma
+    --use-aroma \
     --md-only-boilerplate \
     --notrack \
     --fs-license-file /freesurfer/license.txt \
