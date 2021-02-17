@@ -15,7 +15,6 @@ TMPDIR=/mnt/magaj/SNAP/Projects/fMRIPrep/NAME/Code/tmp \
     participant \
     --participant-label ##### \
     --ignore fieldmaps \
-    --ignore slicetiming \
     --output-spaces MNIPediatricAsym:cohort-6 \
     --skull-strip-template OASIS30ANTs \
     --bold2t1w-dof 9 \
