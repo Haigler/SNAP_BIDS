@@ -1,7 +1,8 @@
-#The below code is intended to perform fMRIPrep preprocessing on Athak. Step 1 (building the singularity container) needs to be performed only once per dataset.
-
+#The below code is intended to perform fMRIPrep preprocessing on Athak.
+Step 1: Needs to be performed only once.
 #Copy "Code" directory from /mnt/magaj/SNAP/Projects/fMRIPrep/katie/ to your folder: /mnt/magaj/SNAP/Projects/fMRIPrep/NAME/
 
+#Step  2: Run fMRIPrep for each subject
 #RUN fMRIPrep
 #Replace SNAP# with the correct SNAP
 #Replace ##### with the participant number
