@@ -1,11 +1,15 @@
-#The below code is intended to perform fMRIPrep preprocessing on Athak. Step 1 (building the singularity container) needs to be performed only once per dataset.
-
+#The below code is intended to perform fMRIPrep preprocessing on Athak.
+Step 1: Needs to be performed only once.
 #Copy "Code" directory from /mnt/magaj/SNAP/Projects/fMRIPrep/katie/ to your folder: /mnt/magaj/SNAP/Projects/fMRIPrep/NAME/
 
+#Step  2: Run fMRIPrep for each subject
 #RUN fMRIPrep
-#Replace SNAP# with the correct SNAP
-#Replace ##### with the participant number
-#Replace NAME with your name all lowercase
+#1. Copy lines 14-31 into a text editor and perform the below replacements. 
+        #Replace SNAP# with the correct SNAP
+        #Replace ##### with the participant number
+        #Replace NAME with your name all lowercase
+#2. Copy and paste the code into your terminal and let run.
+#3. Replace the participant number with the next participant on your list 
 
 cd /mnt/magaj/SNAP/Projects/fMRIPrep/NAME/Code/
 
@@ -28,11 +32,7 @@ TMPDIR=/mnt/magaj/SNAP/Projects/fMRIPrep/NAME/Code/tmp \
 
 #Check fMRIPrep Logs
 
-
-#IF STARTING FROM SCRATCH
-
-**#Delete fmriprep-20.2.0.simg from /mnt/magaj/SNAP/Projects/fMRIPrep/NAME/Code
-
-#BUILD THE SINGULARITY CONTAINER
-#Replace NAME with your name all lowercase
-singularity build --tmpdir /mnt/magaj/SNAP/Projects/fMRIPrep/NAME/Code/tmp /mnt/magaj/SNAP/Projects/BfMRIPrep/NAME/Code/fmriprep-20.2.1.simg docker://poldracklab/fmriprep:20.2.1
+#HOW TO BUILD THE SINGULARITY CONTAINER
+#This step needs to be performed only if you do not have an fmriprep singularity built.
+#Replace file paths as needed for your file organization, and update the file paths in the above instructions to run fMRIPrep
+singularity build --tmpdir /mnt/magaj/SNAP/Projects/fMRIPrep/katie/Code/tmp /mnt/magaj/SNAP/Projects/fMRIPrep/katie/Code/fmriprep-20.2.0.simg docker://poldracklab/fmriprep:20.2.0
