@@ -313,30 +313,38 @@ snap3outdir = basefolder + "Converted Files/SNAP 3/GoNoGo/"
 seenIDs = []
 for datafile in snap2files:
     thisData = Data(join(snap2datadir, datafile))
-    thisData.load()
-    thisData.clean()
-
     subjID = str(''.join(filter(str.isdigit, datafile)))
-    if subjID in seenIDs:
-        # making sure there is no duplicate file as this would silently overwrite output from the first file
-        raise Exception('Two file names found with the numbers {}. Rename to prevent overwriting.'.format(subjID))
-    else:
-        seenIDs.append(subjID)
-        outputfile = "sub-" + subjID.zfill(5) + "_task-gonogo_run01.tsv"
 
-    thisData.write(join(snap2outdir, outputfile))
+    try:
+        thisData.load()
+        thisData.clean()
+
+        if subjID in seenIDs:
+            # making sure there is no duplicate file as this would silently overwrite output from the first file
+            raise Exception('Two file names found with the numbers {}. Rename to prevent overwriting.'.format(subjID))
+        else:
+            seenIDs.append(subjID)
+            outputfile = "sub-" + subjID.zfill(5) + "_task-gonogo_run01.tsv"
+
+        thisData.write(join(snap2outdir, outputfile))
+    except:
+        raise Exception('Unable to process subject {}'.format(subjID))
 
 seenIDs = []
 for datafile in snap3files:
     thisData = Data(join(snap3datadir, datafile))
-    thisData.load()
-    thisData.clean()
-
     subjID = str(''.join(filter(str.isdigit, datafile)))
-    if subjID in seenIDs:
-        raise Exception('Two file names found with the numbers {}. Rename to prevent overwriting.'.format(subjID))
-    else:
-        seenIDs.append(subjID)
-        outputfile = "sub-" + subjID.zfill(5) + "_task-gonogo_run01.tsv"
 
-    thisData.write(join(snap3outdir, outputfile))
+    try:
+        thisData.load()
+        thisData.clean()
+
+        if subjID in seenIDs:
+            raise Exception('Two file names found with the numbers {}. Rename to prevent overwriting.'.format(subjID))
+        else:
+            seenIDs.append(subjID)
+            outputfile = "sub-" + subjID.zfill(5) + "_task-gonogo_run01.tsv"
+
+        thisData.write(join(snap3outdir, outputfile))
+    except:
+        raise Exception('Unable to process subject {}'.format(subjID))

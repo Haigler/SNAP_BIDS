@@ -105,6 +105,14 @@ class Probe:
                                     + self.probe_onsetField + self.probe_durationField + self.wordLField \
                                     + self.wordRField + self.trial_typeField + self.trialField))
 
+    def error_check(self, dataName, data):
+        if dataName == 'response':
+            # Verify that no response also has no reaction time and no response scan time recorded
+            timeNAmatches = (pandas.isna(data['response']) == pandas.isna(data['response_time']))
+            scanTimeNAmatches = (pandas.isna(data['response']) == pandas.isna(data['response_scan_time']))
+            if not timeNAmatches.all() or not scanTimeNAmatches.all():
+                raise Exception('Mismatch in blank entries for response and response timings (RT and/or scan time).')
+
     def clean(self, rawData, outputFields):
         # combine onset data into one column
         onset = rawData['Words.OnsetTime'] - rawData['GetReady.OnsetTime']
@@ -115,9 +123,12 @@ class Probe:
         duration = duration.sum(axis=1, min_count=2).to_frame('duration')
 
         # calculate response time
+        # replace missing values in the probe response time with any responses made during the jitter
+        # if response was made during the jitter, add 500 to account for time elapsed during probe
         response_time = rawData[self.response_timeField]
-        response_time['Prb.RT'] = response_time['Prb.RT'].replace(0, np.NaN)
-        response_time = response_time.sum(axis=1, min_count=2) + 500
+        response_time = response_time.replace(0, np.NaN)
+        response_time['jitter.RT'] = response_time['jitter.RT'] + 500
+        response_time = response_time['Prb.RT'].fillna(response_time['jitter.RT'])
         response_time = response_time.to_frame('response_time').astype('Int64')
 
         # calculate response scanner time.
@@ -130,6 +141,8 @@ class Probe:
         response = response['Prb.RESP'].fillna(response['jitter.RESP'])
         responseRecodeVals = {2: "right", 7: "left"}
         response = response.to_frame('response').replace({'response': responseRecodeVals})
+
+        self.error_check('response', pandas.concat([response, response_time, response_scan_time], axis=1))
 
         # recode values for probe location
         probe_rl = rawData[self.probe_rlField]
@@ -215,46 +228,58 @@ snap3outdir = basefolder + "Converted Files/SNAP 3/DotProbe/"
 seenIDs = []
 for datafile in snap1files:
     thisData = Data(join(snap1datadir, datafile))
-    thisData.load()
-    thisData.clean()
-
     subjID = str(''.join(filter(str.isdigit, datafile)))
-    if subjID in seenIDs:
-        # making sure there is no duplicate file as this would silently overwrite output from the first file
-        raise Exception('Two file names found with the numbers {}. Rename to prevent overwriting.'.format(subjID))
-    else:
-        seenIDs.append(subjID)
-        outputfile = "sub-" + subjID.zfill(5) + "_task-dotprobe_run01.tsv"
 
-    thisData.write(join(snap1outdir, outputfile))
+    try:
+        thisData.load()
+        thisData.clean()
+
+        if subjID in seenIDs:
+            # making sure there is no duplicate file as this would silently overwrite output from the first file
+            raise Exception('Two file names found with the numbers {}. Rename to prevent overwriting.'.format(subjID))
+        else:
+            seenIDs.append(subjID)
+            outputfile = "sub-" + subjID.zfill(5) + "_task-dotprobe_run01.tsv"
+
+        thisData.write(join(snap1outdir, outputfile))
+    except:
+        raise Exception('Unable to process subject {}'.format(subjID))
 
 seenIDs = []
 for datafile in snap2files:
     thisData = Data(join(snap2datadir, datafile))
-    thisData.load()
-    thisData.clean()
-
     subjID = str(''.join(filter(str.isdigit, datafile)))
-    if subjID in seenIDs:
-        # making sure there is no duplicate file as this would silently overwrite output from the first file
-        raise Exception('Two file names found with the numbers {}. Rename to prevent overwriting.'.format(subjID))
-    else:
-        seenIDs.append(subjID)
-        outputfile = "sub-" + subjID.zfill(5) + "_task-dotprobe_run01.tsv"
 
-    thisData.write(join(snap2outdir, outputfile))
+    try:
+        thisData.load()
+        thisData.clean()
+
+        if subjID in seenIDs:
+            # making sure there is no duplicate file as this would silently overwrite output from the first file
+            raise Exception('Two file names found with the numbers {}. Rename to prevent overwriting.'.format(subjID))
+        else:
+            seenIDs.append(subjID)
+            outputfile = "sub-" + subjID.zfill(5) + "_task-dotprobe_run01.tsv"
+
+        thisData.write(join(snap2outdir, outputfile))
+    except:
+        raise Exception('Unable to process subject {}'.format(subjID))
 
 seenIDs = []
 for datafile in snap3files:
     thisData = Data(join(snap3datadir, datafile))
-    thisData.load()
-    thisData.clean()
-
     subjID = str(''.join(filter(str.isdigit, datafile)))
-    if subjID in seenIDs:
-        raise Exception('Two file names found with the numbers {}. Rename to prevent overwriting.'.format(subjID))
-    else:
-        seenIDs.append(subjID)
-        outputfile = "sub-" + subjID.zfill(5) + "_task-dotprobe_run01.tsv"
 
-    thisData.write(join(snap3outdir, outputfile))
+    try:
+        thisData.load()
+        thisData.clean()
+
+        if subjID in seenIDs:
+            raise Exception('Two file names found with the numbers {}. Rename to prevent overwriting.'.format(subjID))
+        else:
+            seenIDs.append(subjID)
+            outputfile = "sub-" + subjID.zfill(5) + "_task-dotprobe_run01.tsv"
+
+        thisData.write(join(snap3outdir, outputfile))
+    except:
+        raise Exception('Unable to process subject {}'.format(subjID))
