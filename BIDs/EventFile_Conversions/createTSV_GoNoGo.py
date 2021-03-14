@@ -23,8 +23,8 @@ class Data:
         return readFields
 
     def __declareWriteFields(self):
-        writeFields = ['onset', 'duration', 'stimulus_type', 'valence', 'gonogo', 'response', 'reaction_time',
-                       'reaction_scan_time', 'image_onset', 'image_duration', 'letter_onset', 'letter_duration',
+        writeFields = ['onset', 'duration', 'image_onset', 'image_duration', 'letter_onset', 'letter_duration',
+                       'reaction_time', 'reaction_scantime', 'stimulus_type', 'valence', 'gonogo', 'response',
                        'image_file', 'letter', 'set', 'trial', 'block']
         return writeFields
 
@@ -57,7 +57,7 @@ class Data:
         firstOnset = data['onset'].min()
 
         data['onset'] = data['onset'].astype(int) - firstOnset
-        data['reaction_scan_time'] = data['reaction_scan_time'].astype('Int64') - firstOnset
+        data['reaction_scantime'] = data['reaction_scantime'].astype('Int64') - firstOnset
         data['image_onset'] = data['image_onset'].astype('Int64') - firstOnset
         data['letter_onset'] = data['letter_onset'].astype('Int64') - firstOnset
 
@@ -80,7 +80,7 @@ class HereWeGo:
         self.gonogo = np.nan
         self.response = np.nan
         self.reaction_time = np.nan
-        self.reaction_scan_time = np.nan
+        self.reaction_scantime = np.nan
         self.image_onset = np.nan
         self.image_duration = np.nan
         self.letter_onset = np.nan
@@ -133,7 +133,7 @@ class Interblock:
         self.gonogo = np.nan
         self.response = np.nan
         self.reaction_time = np.nan
-        self.reaction_scan_time = np.nan
+        self.reaction_scantime = np.nan
         self.image_onset = np.nan
         self.image_duration = np.nan
         self.letter_onset = np.nan
@@ -181,7 +181,7 @@ class Image:
         self.gonogo = None
         self.response = None
         self.reaction_time = None
-        self.reaction_scan_time = None
+        self.reaction_scantime = None
         self.image_onset = None
         self.image_duration = 300
         self.letter_onset = None
@@ -198,7 +198,7 @@ class Image:
         self.gonogoField = ['Go_NoGo']
         self.responseField = ['Letter.RESP', 'Letter1.RESP', 'Letter2.RESP', 'Letter3.RESP', 'Letter4.RESP']
         self.reaction_timeField = ['Letter.RT', 'Letter1.RT', 'Letter2.RT', 'Letter3.RT', 'Letter4.RT']
-        self.reaction_scan_timeField = ['Letter.RTTime', 'Letter1.RTTime', 'Letter2.RTTime',
+        self.reaction_scantimeField = ['Letter.RTTime', 'Letter1.RTTime', 'Letter2.RTTime',
                                         'Letter3.RTTime', 'Letter4.RTTime']
         self.image_onsetField = ['Image.OnsetTime', 'Image1.OnsetTime', 'Image2.OnsetTime', 'Image3.OnsetTime',
                                  'Image4.OnsetTime']
@@ -210,12 +210,12 @@ class Image:
         self.trialField = ['SubTrial']
         self.blockField = ['Trial']
         self.inputFields = list(set(self.onsetField + self.valenceField + self.gonogoField + self.responseField \
-                                    + self.reaction_timeField + self.reaction_scan_timeField + self.image_onsetField \
+                                    + self.reaction_timeField + self.reaction_scantimeField + self.image_onsetField \
                                     + self.letter_onsetField + self.image_fileField + self.letterField + self.setField \
                                     + self.trialField + self.blockField))
 
     def error_check(self, dataName, data):
-        if dataName == 'onset' or 'response' or 'reaction_time' or 'reaction_scan_time' or 'image_onset' \
+        if dataName == 'onset' or 'response' or 'reaction_time' or 'reaction_scantime' or 'image_onset' \
                 or 'letter_onset':
             # Check that there is only one entry per row
             numEntries = data.count(axis=1)
@@ -235,8 +235,11 @@ class Image:
         valence = valence.rename(columns={valence.columns[0]: 'valence'})
         valence = valence.replace({"valence": valenceRecodeVals})
 
+        # recode values for gonogo
         gonogo = rawData[self.gonogoField]
+        gonogoRecodeVals = {0: "NoGo", 1: "Go"}
         gonogo = gonogo.rename(columns={gonogo.columns[0]: 'gonogo'})
+        gonogo = gonogo.replace({"gonogo": gonogoRecodeVals})
 
         # combine response data into one column
         response = rawData[self.responseField]
@@ -249,9 +252,9 @@ class Image:
         reaction_time = reaction_time.sum(axis=1, min_count=1).to_frame('reaction_time').astype('Int64')
 
         # combine reaction scan time
-        reaction_scan_time = rawData[self.reaction_scan_timeField].replace(0, np.nan)
-        self.error_check('reaction_scan_time', reaction_scan_time)
-        reaction_scan_time = reaction_scan_time.sum(axis=1, min_count=1).to_frame('reaction_scan_time').astype('Int64')
+        reaction_scantime = rawData[self.reaction_scantimeField].replace(0, np.nan)
+        self.error_check('reaction_scantime', reaction_scantime)
+        reaction_scantime = reaction_scantime.sum(axis=1, min_count=1).to_frame('reaction_scantime').astype('Int64')
 
         # combine image onset
         image_onset = rawData[self.image_onsetField]
@@ -283,7 +286,7 @@ class Image:
         block = rawData[self.blockField]
         block = block.rename(columns={block.columns[0]: 'block'})
 
-        data = pandas.concat([onset, valence, gonogo, response, reaction_time, reaction_scan_time,
+        data = pandas.concat([onset, valence, gonogo, response, reaction_time, reaction_scantime,
                               image_onset, letter_onset, image_file, letter, set, trial, block], axis=1)
 
         # create columns for each field with the values set at initialization
