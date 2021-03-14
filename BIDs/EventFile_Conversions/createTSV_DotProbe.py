@@ -26,7 +26,7 @@ class Data:
         return readFields
 
     def __declareWriteFields(self):
-        writeFields = ['onset', 'duration', 'response_time', 'response_scan_time', 'response', 'probe_rl', 'word_rl',
+        writeFields = ['onset', 'duration', 'reaction_time', 'reaction_scantime', 'response', 'probe_rl', 'word_rl',
                        'congruency', 'word_onset', 'word_duration', 'probe_onset', 'probe_duration',
                        'wordL', 'wordR', 'trial_type', 'trial']
         return writeFields
@@ -68,8 +68,8 @@ class Probe:
     def __init__(self):
         self.onset = None
         self.duration = None
-        self.response_time = None
-        self.response_scan_time = None
+        self.reaction_time = None
+        self.reaction_scantime = None
         self.response = None
         self.probe_rl = None
         self.word_rl = None
@@ -86,7 +86,7 @@ class Probe:
         # column headers of the specific data to import for this stimuli
         self.onsetField = ['Words.OnsetTime', 'GetReady.OnsetTime']
         self.durationField = ['Prb.Duration', 'Words.Duration']
-        self.response_timeField = ['jitter.RT', 'Prb.RT']
+        self.reaction_timeField = ['jitter.RT', 'Prb.RT']
         self.responseField = ['jitter.RESP', 'Prb.RESP']
         self.probe_rlField = ['Probe_RL']
         self.word_rlField = ['Cue_RL']
@@ -99,7 +99,7 @@ class Probe:
         self.wordRField = ['word2']
         self.trial_typeField = ['trialtype']
         self.trialField = ['Trial']
-        self.inputFields = list(set(self.onsetField + self.durationField + self.response_timeField \
+        self.inputFields = list(set(self.onsetField + self.durationField + self.reaction_timeField \
                                     + self.responseField + self.probe_rlField + self.word_rlField \
                                     + self.congruencyField + self.word_onsetField + self.word_durationField \
                                     + self.probe_onsetField + self.probe_durationField + self.wordLField \
@@ -107,9 +107,9 @@ class Probe:
 
     def error_check(self, dataName, data):
         if dataName == 'response':
-            # Verify that no response also has no reaction time and no response scan time recorded
-            timeNAmatches = (pandas.isna(data['response']) == pandas.isna(data['response_time']))
-            scanTimeNAmatches = (pandas.isna(data['response']) == pandas.isna(data['response_scan_time']))
+            # Verify that no response also has no reaction time and no reaction scan time recorded
+            timeNAmatches = (pandas.isna(data['response']) == pandas.isna(data['reaction_time']))
+            scanTimeNAmatches = (pandas.isna(data['response']) == pandas.isna(data['reaction_scantime']))
             if not timeNAmatches.all() or not scanTimeNAmatches.all():
                 raise Exception('Mismatch in blank entries for response and response timings (RT and/or scan time).')
 
@@ -122,18 +122,23 @@ class Probe:
         duration = rawData[self.durationField]
         duration = duration.sum(axis=1, min_count=2).to_frame('duration')
 
-        # calculate response time
-        # replace missing values in the probe response time with any responses made during the jitter
+        # calculate reaction time
+        # replace missing values in the probe reaction time with any responses made during the jitter
         # if response was made during the jitter, add 500 to account for time elapsed during probe
-        response_time = rawData[self.response_timeField]
-        response_time = response_time.replace(0, np.NaN)
-        response_time['jitter.RT'] = response_time['jitter.RT'] + 500
-        response_time = response_time['Prb.RT'].fillna(response_time['jitter.RT'])
-        response_time = response_time.to_frame('response_time').astype('Int64')
+        reaction_time = rawData[self.reaction_timeField]
+        reaction_time['Prb.RT'] = reaction_time['Prb.RT'].replace(0, np.NaN) # no response made during probe
+        reaction_time['jitter.RT'] = reaction_time['jitter.RT'] + 500 # 0 during jitter sometimes has a response with it
+        reaction_time = reaction_time['Prb.RT'].fillna(reaction_time['jitter.RT']) # replace missing probe with jitter
+        response = rawData[self.responseField]
+        noRespTrials = response.index[response.isnull().all(1)]  # trials with no response in probe or jitter
+        reaction_time.loc[noRespTrials] = np.NaN # filtering out 0 reaction time in jitter when there was no response
+        reaction_time = reaction_time.to_frame('reaction_time').astype('Int64')
 
-        # calculate response scanner time.
-        response_scan_time = 500 + response_time.iloc[:, 0] + onset.iloc[:, 0]
-        response_scan_time = response_scan_time.to_frame('response_scan_time')
+
+
+        # calculate reaction scanner time.
+        reaction_scantime = reaction_time.iloc[:, 0] + onset.iloc[:, 0]
+        reaction_scantime = reaction_scantime.to_frame('reaction_scantime')
 
         # replace missing values in the probe response with any responses made during the jitter
         # recode values for response
@@ -142,7 +147,7 @@ class Probe:
         responseRecodeVals = {2: "right", 7: "left"}
         response = response.to_frame('response').replace({'response': responseRecodeVals})
 
-        self.error_check('response', pandas.concat([response, response_time, response_scan_time], axis=1))
+        self.error_check('response', pandas.concat([response, reaction_time, reaction_scantime], axis=1))
 
         # recode values for probe location
         probe_rl = rawData[self.probe_rlField]
@@ -194,7 +199,7 @@ class Probe:
         trial = rawData[self.trialField]
         trial = trial.rename(columns={trial.columns[0]: 'trial'})
 
-        data = pandas.concat([onset, duration, response_time, response_scan_time, response, probe_rl, word_rl,
+        data = pandas.concat([onset, duration, reaction_time, reaction_scantime, response, probe_rl, word_rl,
                               congruency, word_onset, word_duration, probe_onset, probe_duration, wordL, wordR,
                               trial_type, trial], axis=1)
 
