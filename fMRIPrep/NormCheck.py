@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
-#In terminal, call
+#In termina:
+	#conda activate NormCheck
+	#cd ~/home/katie/SNAP/Projects/fMRIPrep/katie/Code/NormCheck.py
 	#python NormCheck.py filepath/filename1.nii.gz
 	
 import sys
