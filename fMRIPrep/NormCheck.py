@@ -2,7 +2,7 @@
 
 #In termina:
 	#conda activate NormCheck
-	#cd ~/home/katie/SNAP/Projects/fMRIPrep/katie/Code/NormCheck.py
+	#cd ~/SNAP/Projects/fMRIPrep/katie/Code/
 	#python NormCheck.py filepath/filename1.nii.gz
 	
 import sys
