@@ -204,7 +204,7 @@ for datafile in snap1files:
             raise Exception('Two file names found with the numbers {}. Rename to prevent overwriting.'.format(subjID))
         else:
             seenIDs.append(subjID)
-            outputfile = "sub-" + subjID.zfill(5) + "_task-driving_run01.tsv"
+            outputfile = "sub-" + subjID.zfill(5) + "_task-driving_run01_events.tsv"
 
         thisData.write(join(snap1outdir, outputfile))
     except:
@@ -226,7 +226,7 @@ if False:
                 raise Exception('Two file names found with the numbers {}. Rename to prevent overwriting.'.format(subjID))
             else:
                 seenIDs.append(subjID)
-                outputfile = "sub-" + subjID.zfill(5) + "_task-drivingPractice_run01.tsv"
+                outputfile = "sub-" + subjID.zfill(5) + "_task-drivingPractice_run01_events.tsv"
 
             thisData.write(join(snap1practiceOutdir, outputfile))
         except:
