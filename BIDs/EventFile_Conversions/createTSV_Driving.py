@@ -210,7 +210,7 @@ for datafile in snap1files:
     except:
         raise Exception('Unable to process subject {}'.format(subjID))
 
-# Disabling until it's resolved how to handle practice files
+# Disabling until it's decided how to handle the practice files
 if False:
     seenIDs = []
     for datafile in snap1pacticeFiles:
