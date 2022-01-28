@@ -134,8 +134,6 @@ class Probe:
         reaction_time.loc[noRespTrials] = np.NaN # filtering out 0 reaction time in jitter when there was no response
         reaction_time = reaction_time.to_frame('reaction_time').astype('Int64')
 
-
-
         # calculate reaction scanner time.
         reaction_scantime = reaction_time.iloc[:, 0] + onset.iloc[:, 0]
         reaction_scantime = reaction_scantime.to_frame('reaction_scantime')
