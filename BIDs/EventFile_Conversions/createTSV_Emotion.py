@@ -44,7 +44,7 @@ class Data:
             cleanedData = pandas.concat([cleanedData, stimData])
 
         # shift all time stamps so the experiment starts at time 0
-        cleanedData = self.__shiftTime(cleanedData)
+        #cleanedData = self.__shiftTime(cleanedData)
 
         # replace all nan with 'NA'
         cleanedData.replace(np.nan, 'NA', inplace=True)
@@ -58,9 +58,9 @@ class Data:
         firstOnset = data['onset'].min()
 
         data['onset'] = data['onset'].astype(int) - firstOnset
+        data['image_onset'] = data['image_onset'].astype(int) - firstOnset
         data['reaction_scantime'] = data['reaction_scantime'].astype('Int64') - firstOnset
-        data['image_onset'] = data['image_onset'].astype('Int64') - firstOnset
-        data['letter_onset'] = data['letter_onset'].astype('Int64') - firstOnset
+        data['jitter_onset'] = data['jitter_onset'].astype(int) - firstOnset
 
         return data
 
@@ -139,7 +139,7 @@ class Faces:
         duration = rawData[self.durationField]
         duration = duration.diff()
         duration = duration.reindex(index=np.roll(duration.index, -1)).reset_index(drop=True)
-        duration = duration.rename(columns={duration.columns[0]: 'duration'})
+        duration = duration.rename(columns={duration.columns[0]: 'duration'}).astype('Int64')
 
         # calculate image onset time
         image_onset = rawData['Stim.OnsetTime'] - rawData['FixationInput.OffsetTime'] + 1
@@ -152,11 +152,11 @@ class Faces:
         # extract reaction time
         reaction_time = rawData[self.reaction_timeField]
         reaction_time = reaction_time.replace(0, np.NaN)  # no response
-        reaction_time = reaction_time.rename(columns={reaction_time.columns[0]: 'reaction_time'})
+        reaction_time = reaction_time.rename(columns={reaction_time.columns[0]: 'reaction_time'}).astype('Int64')
 
         # calculate reaction scan time
         reaction_scantime = rawData['Stim.RTTime'].replace(0, np.NaN) - rawData['FixationInput.OffsetTime'] + 1
-        reaction_scantime = reaction_scantime.to_frame('reaction_scantime')
+        reaction_scantime = reaction_scantime.to_frame('reaction_scantime').astype('Int64')
 
         # calculate jitter onset
         jitter_onset = rawData['jitter.OnsetTime'] - rawData['FixationInput.OffsetTime'] + 1
@@ -168,22 +168,68 @@ class Faces:
 
         # recode values for response
         response = rawData[self.responseField]
-        responseRecodeVals = {'2': "right", '7': "left", ' ': np.nan}
-        response = response.rename(columns={response.columns[0]: 'response'}).replace({'response': responseRecodeVals})
+        # some are strings, others are floats, casting all to int for recoding.
+        response = response.squeeze().astype('str').str.strip()
+        response = response.to_frame('response').replace('', np.nan).astype('float').astype('Int64')
+        responseRecodeVals = {2: "right", 7: "left"}
+        response = response.replace({'response': responseRecodeVals})
 
         self.error_check('response', pandas.concat([response, reaction_time, reaction_scantime], axis=1))
 
         # recode correct response
         correct_response = rawData[self.correct_responseField]
-        correct_responseRecodeVals = {'2': "right", '7': "left", ' ': np.nan}
-        correct_response = correct_response.rename(columns={correct_response.columns[0]: 'correct_response'}).replace({'correct_response': correct_responseRecodeVals})
+        correct_response = correct_response.squeeze().astype('str').str.strip()
+        correct_response = correct_response.to_frame('correct_response').replace('', np.nan).astype('float').astype('Int64') # cast to int for recoding
+        correct_responseRecodeVals = {2: "right", 7: "left"}
+        correct_response = correct_response.replace({'correct_response': correct_responseRecodeVals})
 
-        # recode accuracy -- NTS: left off here.
+        # recode accuracy
+        # if the correct response was NaN, also make NaN.
         accuracy = rawData['Stim.ACC']
-        accuracy = accuracy.to_frame('accuracy').mask(~pandas.isna(correct_response), other=np.nan)
+        m = pandas.isna(correct_response).squeeze()
+        accuracy = accuracy.to_frame('accuracy').mask(m, np.nan)
+        accuracyRecodeVals = {1: "correct", 0: "incorrect"}
+        accuracy = accuracy.replace({'accuracy': accuracyRecodeVals})
+
+        # recode trial type
+        trial_type = rawData[self.trial_typeField]
+        trial_typeRecodeVals = {1: "ShapesMatch", 2: "NegObserve", 3: "NegMatch", 4: "ShapesMatch", 5: "NegObserve", 6: "NegMatch", 7: "PosObserve", 8: "PosObserve", 9: "PosMatch", 10: "PosMatch"}
+        trial_type = trial_type.rename(columns={trial_type.columns[0]: 'trial_type'}).replace({'trial_type': trial_typeRecodeVals})
+
+        # extract target label
+        target_label = rawData[self.target_labelField]
+        target_label = target_label.squeeze().astype('str').str.strip()
+        target_label = target_label.to_frame('target_label')
+
+        # extract distractor label
+        distractor_label = rawData[self.distractor_labelField]
+        distractor_labelRecodeVals = {' ': np.nan}
+        distractor_label = distractor_label.rename(columns={distractor_label.columns[0]: 'distractor_label'}).replace({'distractor_label': distractor_labelRecodeVals})
+
+        # extract ethnicity
+        ethnicity = rawData[self.ethnicityField]
+        ethnicityRecodeVals = {' ': np.nan}
+        ethnicity = ethnicity.rename(columns={ethnicity.columns[0]: 'ethnicity'}).replace({'ethnicity': ethnicityRecodeVals})
+
+        # extract image file name
+        image_file = rawData[self.image_fileField]
+        image_file = image_file.rename(columns={image_file.columns[0]: 'image_file'})
+
+        # extract set name
+        set = rawData[self.setField]
+        set = set.rename(columns={set.columns[0]: 'set'})
+
+        # extract trial number
+        trial = rawData[self.trialField]
+        trial = trial.rename(columns={trial.columns[0]: 'trial'})
+
+        # extract block number
+        block = rawData[self.blockField]
+        block = block.rename(columns={block.columns[0]: 'block'})
 
         data = pandas.concat([onset, duration, image_onset, image_duration, reaction_time, reaction_scantime,
-                              jitter_onset, jitter_duration, response, correct_response, accuracy], axis=1)
+                              jitter_onset, jitter_duration, response, correct_response, accuracy, trial_type,
+                              target_label, distractor_label, ethnicity, image_file, set, trial, block], axis=1)
 
         # create columns for each field with the values set at initialization
         # (this may not be used in certain versions of this script)

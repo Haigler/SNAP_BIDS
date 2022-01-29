@@ -7,7 +7,7 @@ Below is the current state of the event file conversions.
 + **GoNoGo** -- Ready for tsv review.
 + **DotProbe** -- Ready for code review.
 + **Driving** -- Need to add conversion for practice files.
-+ **Emotion** -- Code development in progress.
++ **Emotion** -- Ready for code review.
 + **Feedback** -- Not started.
 + **Team** -- Not started.
 
