@@ -8,7 +8,7 @@ Below is the current state of the event file conversions.
 + **DotProbe** -- Ready for code review.
 + **Driving** -- Need to add conversion for practice files.
 + **Emotion** -- Ready for code review.
-+ **Feedback** -- Not started.
++ **Feedback** -- Ready for code review.
 + **Team** -- Not started.
 
 ## Process
