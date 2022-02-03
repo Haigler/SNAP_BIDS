@@ -9,7 +9,7 @@ Below is the current state of the event file conversions.
 + **Driving** -- Need to add conversion for practice files.
 + **Emotion** -- Ready for code review.
 + **Feedback** -- Ready for code review.
-+ **Team** -- Code development started.
++ **Team** -- Need to add conversion for pre and post files.
 + **Cyberball** -- Needs pre-code documentation (see the [before code development process](#before-code-development))
 
 ## Process

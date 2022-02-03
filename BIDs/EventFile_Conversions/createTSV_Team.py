@@ -7,6 +7,8 @@ from os.path import isfile, join
 import numpy as np
 import pandas
 
+# turning off a warning that occurs with some chained commands.
+pandas.options.mode.chained_assignment = None
 
 class Data:
     def __init__(self, dataFileName):
@@ -59,7 +61,6 @@ class Data:
         data['onset'] = data['onset'].astype(int) - firstOnset
         data['image_onset'] = data['image_onset'].astype(int) - firstOnset
         data['reaction_scantime'] = data['reaction_scantime'].astype('Int64') - firstOnset
-        data['jitter_onset'] = data['jitter_onset'].astype(int) - firstOnset
 
         return data
 
@@ -109,7 +110,14 @@ class Team:
                                     + self.trialField + self.blockField))
 
     def error_check(self, dataName, data):
-        if dataName == 'response':
+        if dataName == 'single_response':
+            # Verify that there is at most one response recorded across both the stimuli and jitter period.
+            no_response = pandas.isna(data['Stim.RESP']) & pandas.isna(data['Jitter.RESP'])
+            exactly1_response = pandas.isna(data['Stim.RESP']) ^ pandas.isna(data['Jitter.RESP'])
+            atmost1_response = no_response | exactly1_response
+            if not atmost1_response.all():
+                raise Exception('Response recorded during both stimuli and jitter. Expecting at most one recorded response.')
+        if dataName == 'no_response':
             # Verify that no response also has no reaction time and no reaction scan time recorded
             timeNAmatches = (pandas.isna(data['response']) == pandas.isna(data['reaction_time']))
             scanTimeNAmatches = (pandas.isna(data['response']) == pandas.isna(data['reaction_scantime']))
@@ -118,7 +126,7 @@ class Team:
 
     def clean(self, rawData, outputFields):
         # calculate onset time
-        onset = rawData['Stim.OnsetTime'] - rawData['HereWeGo.OnsetTime']
+        onset = rawData['Stim.OnsetTime'] - rawData['HereWeGo.OnsetTime'].iloc[0]
         onset = onset.to_frame('onset')
 
         # combine duration data into one column
@@ -128,7 +136,7 @@ class Team:
         duration = duration.rename(columns={duration.columns[0]: 'duration'}).astype('Int64')
 
         # calculate image onset time
-        image_onset = rawData['Stim.OnsetTime'] - rawData['HereWeGo.OnsetTime']
+        image_onset = rawData['Stim.OnsetTime'] - rawData['HereWeGo.OnsetTime'].iloc[0]
         image_onset = image_onset.to_frame('image_onset')
 
         # calculate reaction time
@@ -140,86 +148,48 @@ class Team:
         reaction_time = reaction_time.to_frame('reaction_time').astype('Int64')
 
         # calculate reaction scan time
-        reaction_scantime = rawData['Stim.RTTime'].replace(0, np.NaN) - rawData['FixationInput.OffsetTime'] + 1
-        reaction_scantime = reaction_scantime.to_frame('reaction_scantime').astype('Int64')
-
-        # calculate jitter onset
-        jitter_onset = rawData['jitter.OnsetTime'] - rawData['FixationInput.OffsetTime'] + 1
-        jitter_onset = jitter_onset.to_frame('jitter_onset')
-
-        # extract jitter duration
-        jitter_duration = rawData[self.jitter_durationField]
-        jitter_duration = jitter_duration.rename(columns={jitter_duration.columns[0]: 'jitter_duration'})
+        reaction_scantime = rawData['Stim.RTTime'] + rawData['Jitter.RT']
+        reaction_scantime = reaction_scantime.replace(0, np.NaN).to_frame('reaction_scantime').astype('Int64')
 
         # recode values for response
         response = rawData[self.responseField]
-        # some are strings, others are floats, casting all to int for recoding.
-        response = response.squeeze().astype('str').str.strip()
-        response = response.to_frame('response').replace('', np.nan).astype('float').astype('Int64')
-        responseRecodeVals = {2: "right", 7: "left"}
-        response = response.replace({'response': responseRecodeVals})
+        #self.error_check('single_response', response) # disabling so will take first response if two
+        response = response['Stim.RESP'].mask(pandas.isna(response['Stim.RESP']), other=response['Jitter.RESP'])
+        responseRecodeVals = {1: "Dislike a lot", 2: "Dislike a little", 3: "Like a little", 4: "Like a lot", 5: "CHANGETHIS!!"}
+        response = response.to_frame('response').replace({'response': responseRecodeVals})
 
-        self.error_check('response', pandas.concat([response, reaction_time, reaction_scantime], axis=1))
+        self.error_check('no_response', pandas.concat([response, reaction_time, reaction_scantime], axis=1))
 
-        # recode correct response
-        correct_response = rawData[self.correct_responseField]
-        correct_response = correct_response.squeeze().astype('str').str.strip()
-        correct_response = correct_response.to_frame('correct_response').replace('', np.nan).astype('float').astype(
-            'Int64')  # cast to int for recoding
-        correct_responseRecodeVals = {2: "right", 7: "left"}
-        correct_response = correct_response.replace({'correct_response': correct_responseRecodeVals})
+        # recode values for group affiliation
+        group_affiliation = rawData[self.group_affiliationField]
+        group_affiliationRecodeVals = {1: "ingroup", 2: "outgroup", 3: "unaffiliated"}
+        group_affiliation = group_affiliation.rename(columns={group_affiliation.columns[0]: 'group_affiliation'}).replace({'group_affiliation': group_affiliationRecodeVals})
 
-        # recode accuracy
-        # if the correct response was NaN, also make NaN.
-        accuracy = rawData['Stim.ACC']
-        m = pandas.isna(correct_response).squeeze()
-        accuracy = accuracy.to_frame('accuracy').mask(m, np.nan)
-        accuracyRecodeVals = {1: "correct", 0: "incorrect"}
-        accuracy = accuracy.replace({'accuracy': accuracyRecodeVals})
+        # extract team membership
+        team = rawData[self.teamField]
+        team = team.rename(columns={team.columns[0]: 'team'})
 
-        # recode trial type
-        trial_type = rawData[self.trial_typeField]
-        trial_typeRecodeVals = {1: "ShapesMatch", 2: "NegObserve", 3: "NegMatch", 4: "ShapesMatch", 5: "NegObserve",
-                                6: "NegMatch", 7: "PosObserve", 8: "PosObserve", 9: "PosMatch", 10: "PosMatch"}
-        trial_type = trial_type.rename(columns={trial_type.columns[0]: 'trial_type'}).replace(
-            {'trial_type': trial_typeRecodeVals})
+        # extract gender
+        gender = rawData[self.genderField]
+        gender = gender.rename(columns={gender.columns[0]: 'gender'})
 
-        # extract target label
-        target_label = rawData[self.target_labelField]
-        target_label = target_label.squeeze().astype('str').str.strip()
-        target_label = target_label.to_frame('target_label')
+        # extract race
+        race = rawData[self.raceField]
+        race = race.rename(columns={race.columns[0]: 'race'})
 
-        # extract distractor label
-        distractor_label = rawData[self.distractor_labelField]
-        distractor_labelRecodeVals = {' ': np.nan}
-        distractor_label = distractor_label.rename(columns={distractor_label.columns[0]: 'distractor_label'}).replace(
-            {'distractor_label': distractor_labelRecodeVals})
+        # extract filename
+        filename = rawData[self.filenameField]
+        filename = filename.rename(columns={filename.columns[0]: 'filename'})
 
-        # extract ethnicity
-        ethnicity = rawData[self.ethnicityField]
-        ethnicityRecodeVals = {' ': np.nan}
-        ethnicity = ethnicity.rename(columns={ethnicity.columns[0]: 'ethnicity'}).replace(
-            {'ethnicity': ethnicityRecodeVals})
-
-        # extract image file name
-        image_file = rawData[self.image_fileField]
-        image_file = image_file.rename(columns={image_file.columns[0]: 'image_file'})
-
-        # extract set name
-        set = rawData[self.setField]
-        set = set.rename(columns={set.columns[0]: 'set'})
-
-        # extract trial number
+        # extract trial
         trial = rawData[self.trialField]
         trial = trial.rename(columns={trial.columns[0]: 'trial'})
 
-        # extract block number
+        # extract block
         block = rawData[self.blockField]
         block = block.rename(columns={block.columns[0]: 'block'})
 
-        data = pandas.concat([onset, duration, image_onset, image_duration, reaction_time, reaction_scantime,
-                              jitter_onset, jitter_duration, response, correct_response, accuracy, trial_type,
-                              target_label, distractor_label, ethnicity, image_file, set, trial, block], axis=1)
+        data = pandas.concat([onset, duration, image_onset, reaction_time, reaction_scantime, response, group_affiliation, team, gender, race, filename, trial, block], axis=1)
 
         # create columns for each field with the values set at initialization
         # (this may not be used in certain versions of this script)
@@ -234,12 +204,12 @@ class Team:
 # path to data
 # note that this task has data split across several folders
 basefolder = "/mnt/magaj/SNAP/Data/Task Behavioral Data for BIDS/"
-# snap1datadir = basefolder + "SNAP 1/Team Game/Pre Scan Training/Edat/"
-# snap1datadir = basefolder + "SNAP 1/Team Game/Pre Scan Training/New Edat/"
-snap1datadir = basefolder + "SNAP 1/Team Game/Scan Task/Edat/"
-# snap1datadir = basefolder + "SNAP 1/Team Game/Scan Task/New Edat/"
-# snap1datadir = basefolder + "SNAP 1/Team Game/Post Scan Memory/Edat/"
-# snap1datadir = basefolder + "SNAP 1/Team Game/Post Scan Memory/New Edat/"
+# snap1datadir1 = basefolder + "SNAP 1/Team Game/Pre Scan Training/Edat/"
+# snap1datadir2 = basefolder + "SNAP 1/Team Game/Pre Scan Training/New Edat/"
+snap1datadir1 = basefolder + "SNAP 1/Team Game/Scan Task/Edat/"
+snap1datadir2 = basefolder + "SNAP 1/Team Game/Scan Task/New Edat/"
+# snap1datadir1 = basefolder + "SNAP 1/Team Game/Post Scan Memory/Edat/"
+# snap1datadir2 = basefolder + "SNAP 1/Team Game/Post Scan Memory/New Edat/"
 
 # output folder
 # snap1outdir = basefolder + "Converted Files/SNAP 1/Team/Pre Scan Training/"
@@ -247,21 +217,23 @@ snap1outdir = basefolder + "Converted Files/SNAP 1/Team/Scan Task/"
 # snap1outdir = basefolder + "Converted Files/SNAP 1/Team/Post Scan Memory/"
 
 # Error check to make sure the right input/output pair is in place
-assert ("Pre Scan Training" in snap1datadir and "Pre Scan Training" in snap1outdir) or \
-       ("Scan Task" in snap1datadir and "Scan Task" in snap1outdir) or \
-       ("Post Scan Memory" in snap1datadir and "Post Scan Memory" in snap1outdir), \
+assert ("Pre Scan Training" in snap1datadir1 and "Pre Scan Training" in snap1datadir2 and "Pre Scan Training" in snap1outdir) or \
+       ("Scan Task" in snap1datadir1 and "Scan Task" in snap1datadir2 and "Scan Task" in snap1outdir) or \
+       ("Post Scan Memory" in snap1datadir1 and "Post Scan Memory" in snap1datadir2 and "Post Scan Memory" in snap1outdir), \
        "Input and output directories don't correspond."
 
-# getting list of files
-snap1files = [f for f in listdir(snap1datadir) if isfile(join(snap1datadir, f))]
-
-# output folder
-snap1outdir = basefolder + "Converted Files/SNAP 1/Team/"
+# getting list of files and their paths
+snap1files1 = [f for f in listdir(snap1datadir1) if isfile(join(snap1datadir1, f))]
+snap1files1path = [snap1datadir1 for d in snap1files1]
+snap1files2 = [f for f in listdir(snap1datadir2) if isfile(join(snap1datadir2, f))]
+snap1files2path = [snap1datadir2 for d in snap1files2]
+snap1files = snap1files1 + snap1files2
+snap1datadir = snap1files1path + snap1files2path
 
 # read, clean, and write data
 seenIDs = []
-for datafile in snap1files:
-    thisData = Data(join(snap1datadir, datafile))
+for i, datafile in enumerate(snap1files):
+    thisData = Data(join(snap1datadir[i], datafile))
     subjID = str(''.join(filter(str.isdigit, datafile)))
 
     try:
