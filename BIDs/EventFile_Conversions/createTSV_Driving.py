@@ -101,6 +101,7 @@ class Drive:
         rawData = rawData.replace('^\s*$', np.NaN, regex=True)
 
         # extract onset time
+        # note that collaborators in Oregon decided that the 2050 value added to the onsets and scan time was needed to correct timing differences in the original code after porting to ePrime, however the exact justification for this was not recorded.
         onset = rawData[self.onsetField] + 2050
         onset = onset.rename(columns={onset.columns[0]: 'onset'})
 
