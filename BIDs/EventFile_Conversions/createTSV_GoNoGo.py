@@ -241,10 +241,12 @@ class Image:
         gonogo = gonogo.rename(columns={gonogo.columns[0]: 'gonogo'})
         gonogo = gonogo.replace({"gonogo": gonogoRecodeVals})
 
-        # combine response data into one column
+        # combine response data into one column and recode
         response = rawData[self.responseField]
         self.error_check('response', response)
         response = response.sum(axis=1, min_count=1).to_frame('response').astype('Int64')
+        responseRecodeVals = {2: "press"}
+        response = response.replace({"response": responseRecodeVals})
 
         # combine reaction time
         reaction_time = rawData[self.reaction_timeField].replace(0, np.nan)
@@ -276,7 +278,11 @@ class Image:
         # recode values for set
         set = rawData[self.setField]
         setRecodeVals = {"Neg1S": "ScramNeg1", "Neg2S": "ScramNeg2",
-                         "Pos1S": "ScramPos1", "Pos2S": "ScramPos2"}
+                         "Pos1S": "ScramPos1", "Pos2S": "ScramPos2",
+                         "Neg1": "NegativeSet1", "Neg2": "NegativeSet2",
+                         "Neg3": "NegativeSet3", "Neg4": "NegativeSet4",
+                         "Pos1": "PositiveSet1", "Pos2": "PositiveSet2",
+                         "Pos3": "PositiveSet3", "Pos4": "PositiveSet4"}
         set = set.rename(columns={set.columns[0]: 'set'})
         set = set.replace({"set": setRecodeVals})
 
@@ -327,7 +333,7 @@ for datafile in snap2files:
             raise Exception('Two file names found with the numbers {}. Rename to prevent overwriting.'.format(subjID))
         else:
             seenIDs.append(subjID)
-            outputfile = "sub-" + subjID.zfill(5) + "_task-gonogo_run01_events.tsv"
+            outputfile = "sub-" + subjID.zfill(5) + "_task-gonogo_run-01_events.tsv"
 
         thisData.write(join(snap2outdir, outputfile))
     except:
@@ -346,7 +352,7 @@ for datafile in snap3files:
             raise Exception('Two file names found with the numbers {}. Rename to prevent overwriting.'.format(subjID))
         else:
             seenIDs.append(subjID)
-            outputfile = "sub-" + subjID.zfill(5) + "_task-gonogo_run01_events.tsv"
+            outputfile = "sub-" + subjID.zfill(5) + "_task-gonogo_run-01_events.tsv"
 
         thisData.write(join(snap3outdir, outputfile))
     except:

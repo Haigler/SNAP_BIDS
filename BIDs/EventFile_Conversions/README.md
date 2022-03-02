@@ -4,7 +4,7 @@ This is a collection of scripts that were used to convert the event files genera
 ## Progress
 Below is the current state of the event file conversions.
 
-+ **GoNoGo** -- Ready for tsv review.
++ **GoNoGo** -- Ready for code review.
 + **DotProbe** -- Ready for code review.
 + **Driving** -- Need to add conversion for practice files.
 + **Emotion** -- Ready for code review.
@@ -17,7 +17,7 @@ This process includes the following stages.
 
 1. code development
 2. code review
-3. tsv output review
+3. tsv output review -- 10% of files checked against manual conversion
 4. json review
 5. organization of tsv/json into the BIDS data hierarchy
 
