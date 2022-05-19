@@ -94,6 +94,15 @@ class Drive:
                                     + self.decisionField + self.decision_timingField + self.outcomeField \
                                     + self.trialField))
 
+    def error_check(self, dataName, data, dataDict=None):
+        if dataName == 'decision_timing':
+            # Check if there exists other event names to recode since documentation was lacking on this aspect.
+            possibleVals = set(dataDict.values()) | set([np.nan])
+            entriesNotConverted = set(data.iloc[:, 0]).difference(possibleVals)
+            if entriesNotConverted:
+                pass
+                #raise Exception('Entries not accounted for in recoding of decision_timing values')
+
     def clean(self, rawData, outputFields):
         # sort raw data by onset - needed for some calculations
         rawData = rawData.sort_values(by=self.onsetField).reset_index(drop=True)
@@ -101,7 +110,7 @@ class Drive:
         rawData = rawData.replace('^\s*$', np.NaN, regex=True)
 
         # extract onset time
-        # note that collaborators in Oregon decided that the 2050 value added to the onsets and scan time was needed to correct timing differences in the original code after porting to ePrime, however the exact justification for this was not recorded.
+        # note that collaborators in Oregon decided that the 2050 value added to the onsets and scan time was needed to correct timing differences in the original code after porting to ePrime, however the exact justification for this was not recorded. This information was obtained from Dr. Eva Telzer during a meeting on Feb 16th, 2021.
         onset = rawData[self.onsetField] + 2050
         onset = onset.rename(columns={onset.columns[0]: 'onset'})
 
@@ -149,10 +158,11 @@ class Drive:
         decision_timingRecodeVals = {"red": "DecisionBeforeRed", "cra": "GoAfterRed", "Bra": "Brake"}
         decision_timing = decision_timing.rename(columns={decision_timing.columns[0]: 'decision_timing'})
         decision_timing = decision_timing.replace({"decision_timing": decision_timingRecodeVals})
+        self.error_check('decision_timing', decision_timing, decision_timingRecodeVals)
 
         # fix crash onset timing for delayed decisions
         if (decision_timing['decision_timing'] == "GoAfterRed").any():
-            pass
+            bar = 2 #debugging
         crash_onset.loc[decision_timing['decision_timing'] == "GoAfterRed", 'crash_onset'] += 300
 
         # extract outcome
