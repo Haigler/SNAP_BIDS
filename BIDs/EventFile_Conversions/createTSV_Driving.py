@@ -101,7 +101,7 @@ class Drive:
             entriesNotConverted = set(data.iloc[:, 0]).difference(possibleVals)
             if entriesNotConverted:
                 pass
-                #raise Exception('Entries not accounted for in recoding of decision_timing values')
+                raise Exception('Entries not accounted for in recoding of decision_timing values')
 
     def clean(self, rawData, outputFields):
         # sort raw data by onset - needed for some calculations
