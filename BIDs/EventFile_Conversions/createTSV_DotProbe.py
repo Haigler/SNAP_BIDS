@@ -1,5 +1,5 @@
 # DotProbe TASK
-# This script converts the original GoNoGo files that were exported from ePrime to the BIDS compliant tsv format.
+# This script converts the original DotProbe files that were exported from ePrime to the BIDS compliant tsv format.
 # Only data deemed relevant for analysis have been retained, however this has been construed broadly.
 
 from os import listdir
@@ -26,7 +26,7 @@ class Data:
         return readFields
 
     def __declareWriteFields(self):
-        writeFields = ['onset', 'duration', 'reaction_time', 'reaction_scantime', 'response', 'probe_rl', 'word_rl',
+        writeFields = ['onset', 'duration', 'reaction_time', 'reaction_scantime', 'response', 'probe_rl', 'accuracy', 'word_rl',
                        'congruency', 'word_onset', 'word_duration', 'probe_onset', 'probe_duration',
                        'wordL', 'wordR', 'trial_type', 'trial']
         return writeFields
@@ -72,6 +72,7 @@ class Probe:
         self.reaction_scantime = None
         self.response = None
         self.probe_rl = None
+        self.accuracy = None
         self.word_rl = None
         self.congruency = None
         self.word_onset = None
@@ -89,6 +90,7 @@ class Probe:
         self.reaction_timeField = ['jitter.RT', 'Prb.RT']
         self.responseField = ['jitter.RESP', 'Prb.RESP']
         self.probe_rlField = ['Probe_RL']
+        self.accuracyField = []
         self.word_rlField = ['Cue_RL']
         self.congruencyField = ['congruent']
         self.word_onsetField = ['Words.OnsetTime', 'GetReady.OnsetTime']
@@ -100,10 +102,11 @@ class Probe:
         self.trial_typeField = ['trialtype']
         self.trialField = ['Trial']
         self.inputFields = list(set(self.onsetField + self.durationField + self.reaction_timeField \
-                                    + self.responseField + self.probe_rlField + self.word_rlField \
-                                    + self.congruencyField + self.word_onsetField + self.word_durationField \
-                                    + self.probe_onsetField + self.probe_durationField + self.wordLField \
-                                    + self.wordRField + self.trial_typeField + self.trialField))
+                                    + self.responseField + self.probe_rlField + self.accuracyField \
+                                    + self.word_rlField + self.congruencyField + self.word_onsetField \
+                                    + self.word_durationField + self.probe_onsetField \
+                                    + self.probe_durationField + self.wordLField + self.wordRField \
+                                    + self.trial_typeField + self.trialField))
 
     def error_check(self, dataName, data):
         if dataName == 'response':
@@ -153,6 +156,14 @@ class Probe:
         probe_rl = probe_rl.rename(columns={probe_rl.columns[0]: 'probe_rl'})
         probe_rl = probe_rl.replace({'probe_rl': probe_rlDecodVals})
 
+        # calculate accuracy
+        response.loc[1,'response'] = 'right' # debugging
+        correct = response['response'] == probe_rl['probe_rl']
+        accuracy = correct.to_frame('accuracy')
+        accuracy = accuracy.where(correct, other="incorrect")
+        accuracy = accuracy.where(~correct, other="correct")
+        accuracy = accuracy.mask(response['response'].isnull(), other=np.nan)
+
         # recode values for cue word location
         word_rl = rawData[self.word_rlField]
         word_rlDecodeVals = {"r": "right", "l": "left"}
@@ -197,9 +208,9 @@ class Probe:
         trial = rawData[self.trialField]
         trial = trial.rename(columns={trial.columns[0]: 'trial'})
 
-        data = pandas.concat([onset, duration, reaction_time, reaction_scantime, response, probe_rl, word_rl,
-                              congruency, word_onset, word_duration, probe_onset, probe_duration, wordL, wordR,
-                              trial_type, trial], axis=1)
+        data = pandas.concat([onset, duration, reaction_time, reaction_scantime, response, probe_rl, accuracy,
+                              word_rl, congruency, word_onset, word_duration, probe_onset, probe_duration,
+                              wordL, wordR, trial_type, trial], axis=1)
 
         # create columns for each field with the values set at initialization
         # (this may not be used in certain versions of this script)

@@ -1,6 +1,8 @@
-# DotProbe TASK
-# This script converts the original GoNoGo files that were exported from ePrime to the BIDS compliant tsv format.
+# Driving TASK
+# This script converts the original Driving files that were exported from ePrime to the BIDS compliant tsv format.
 # Only data deemed relevant for analysis have been retained, however this has been construed broadly.
+
+# Note that several data items needed timing adjustments. This was required to correct for timing differences in the original code after porting to ePrime. A team of collaborators in Oregon made these decisions, however the exact justification for this was not recorded. This information was obtained from Dr. Eva Telzer during a meeting on Feb 16th, 2021. These items have comments designating them below.
 
 from os import listdir
 from os.path import isfile, join
@@ -97,11 +99,20 @@ class Drive:
     def error_check(self, dataName, data, dataDict=None):
         if dataName == 'decision_timing':
             # Check if there exists other event names to recode since documentation was lacking on this aspect.
-            possibleVals = set(dataDict.values()) | set([np.nan])
+            possibleVals = set(dataDict.values()) | {np.nan}
             entriesNotConverted = set(data.iloc[:, 0]).difference(possibleVals)
             if entriesNotConverted:
                 pass
-                raise Exception('Entries not accounted for in recoding of decision_timing values')
+                #raise Exception('Entries not accounted for in recoding of decision_timing values')
+
+        if dataName == 'crash_onset':
+            # Check that there are always positive non-zero values of crash_onset when the decision_timing was labelled 'GoAfterRed' as this appears to not always be true.
+            afterRedCrashOnsets = data.loc[data['decision_timing'] == "GoAfterRed", 'crash_onset']
+            nanExists = not afterRedCrashOnsets.isin([np.nan]).empty
+            zeroOrLessExists = (afterRedCrashOnsets <= 0).any()
+            if nanExists or zeroOrLessExists:
+                pass
+                #raise Exception('No valid crash_onset found when decision_timing is \"GoAfterRed\"')
 
     def clean(self, rawData, outputFields):
         # sort raw data by onset - needed for some calculations
@@ -110,7 +121,7 @@ class Drive:
         rawData = rawData.replace('^\s*$', np.NaN, regex=True)
 
         # extract onset time
-        # note that collaborators in Oregon decided that the 2050 value added to the onsets and scan time was needed to correct timing differences in the original code after porting to ePrime, however the exact justification for this was not recorded. This information was obtained from Dr. Eva Telzer during a meeting on Feb 16th, 2021.
+        # note that collaborators in Oregon decided that the 2050 value needed to be added to the onsets and scan time (see note at top).
         onset = rawData[self.onsetField] + 2050
         onset = onset.rename(columns={onset.columns[0]: 'onset'})
 
@@ -161,9 +172,9 @@ class Drive:
         self.error_check('decision_timing', decision_timing, decision_timingRecodeVals)
 
         # fix crash onset timing for delayed decisions
-        if (decision_timing['decision_timing'] == "GoAfterRed").any():
-            bar = 2 #debugging
+        # note that collaborators in Oregon decided that the 300 value needed to be added to the crash_onsets (see note at top).
         crash_onset.loc[decision_timing['decision_timing'] == "GoAfterRed", 'crash_onset'] += 300
+        self.error_check('crash_onset', pandas.concat([crash_onset, decision_timing], axis=1))
 
         # extract outcome
         outcome = rawData[self.outcomeField]
@@ -221,24 +232,3 @@ for datafile in snap1files:
     except:
         raise Exception('Unable to process subject {}'.format(subjID))
 
-# Disabling until it's decided how to handle the practice files
-if False:
-    seenIDs = []
-    for datafile in snap1pacticeFiles:
-        thisData = Data(join(snap1practiceDatadir, datafile))
-        subjID = str(''.join(filter(str.isdigit, datafile)))
-
-        try:
-            thisData.load()
-            thisData.clean()
-
-            if subjID in seenIDs:
-                # making sure there is no duplicate file as this would silently overwrite output from the first file
-                raise Exception('Two file names found with the numbers {}. Rename to prevent overwriting.'.format(subjID))
-            else:
-                seenIDs.append(subjID)
-                outputfile = "sub-" + subjID.zfill(5) + "_task-drivingPractice_run01_events.tsv"
-
-            thisData.write(join(snap1practiceOutdir, outputfile))
-        except:
-            raise Exception('Unable to process subject {}'.format(subjID))

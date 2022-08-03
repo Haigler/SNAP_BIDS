@@ -5,7 +5,7 @@ This is a collection of scripts that were used to convert the event files genera
 Below is the current state of the event file conversions.
 
 + **GoNoGo** -- Ready for tsv output review.
-+ **DotProbe** -- Ready for code review.
++ **DotProbe** -- Ready for tsv output review.
 + **Driving** -- Need to add conversion for practice files.
 + **Emotion** -- Ready for code review.
 + **Feedback** -- Ready for code review.
