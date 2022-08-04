@@ -179,9 +179,13 @@ class Probe:
 
         # replace missing values in the probe response with any responses made during the jitter
         # recode values for response
+        # Note that it was discovered that one subject provided responses 3 and 8 instead of the
+        # expected numbers 2 and 7. Code for the task was unavailable for review, so it is being
+        # assumed for now that the best explanation is that this participant had their fingers
+        # moved over one button on the button box and this is recoded accordingly.
         response = rawData[self.responseField]
         response = response['Prb.RESP'].fillna(response['jitter.RESP'])
-        responseRecodeVals = {2: "right", 7: "left"}
+        responseRecodeVals = {2: "right", 7: "left", 3: "right", 8: "left"}
         response = response.to_frame('response').replace({'response': responseRecodeVals})
 
         self.error_check('response', pandas.concat([response, reaction_time, reaction_scantime], axis=1))
@@ -285,9 +289,10 @@ snap3outdir = basefolder + "Converted Files/SNAP 3/DotProbe/"
 
 
 # optional file for additional error checking.
-# switch to commented code if not needed.
-#errorFileName = None
-errorFileName = './dotprobe-wordpairs.csv'
+# checks for correct valence label for a given word pair.
+# switch to commented code if you wish use.
+errorFileName = None
+#errorFileName = './dotprobe-wordpairs.csv'
 
 
 # read, clean, and write data
