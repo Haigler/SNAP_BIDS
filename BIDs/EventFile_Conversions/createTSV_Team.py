@@ -14,7 +14,7 @@ class Data:
     def __init__(self, dataFileName):
         self.contents = None
         self.dataFile = dataFileName
-        self.stimuli = [Team()]
+        self.stimuli = [HereWeGo(), Team()]
         self.readFields = self.__declareReadFields()
         self.writeFields = self.__declareWriteFields()
 
@@ -26,8 +26,8 @@ class Data:
 
     def __declareWriteFields(self):
         writeFields = ['onset', 'duration', 'image_onset', 'image_duration', 'reaction_time',
-                       'reaction_scantime', 'response', 'group_affiliation', 'team', 'gender', 'race',
-                       'filename', 'trial', 'block']
+                       'reaction_scantime', 'stimulus_type', 'response', 'group_affiliation',
+                       'team', 'gender', 'race', 'filename', 'trial', 'block']
         return writeFields
 
     def load(self):
@@ -44,9 +44,6 @@ class Data:
             stimData = stimType.clean(self.contents, self.writeFields)
             cleanedData = pandas.concat([cleanedData, stimData])
 
-        # shift all time stamps so the experiment starts at time 0
-        # cleanedData = self.__shiftTime(cleanedData)
-
         # replace all nan with 'NA'
         cleanedData.replace(np.nan, 'NA', inplace=True)
 
@@ -55,31 +52,61 @@ class Data:
 
         self.contents = cleanedData
 
-    def __shiftTime(self, data):
-        firstOnset = data['onset'].min()
-
-        data['onset'] = data['onset'].astype(int) - firstOnset
-        data['image_onset'] = data['image_onset'].astype(int) - firstOnset
-        data['reaction_scantime'] = data['reaction_scantime'].astype('Int64') - firstOnset
-
-        return data
-
     def write(self, outputfile):
         if self.contents is not None:
             self.contents.to_csv(outputfile, sep='\t', index=False)
 
-
 # specific types of stimuli in the task
-class Team:
+class HereWeGo:
     def __init__(self):
         # hard coded values are the same across all subjects and trials
         # None values need to be calculated for each trial/subject from the subject file
+        self.onset = 0
+        self.duration = None
+        self.image_onset = np.nan
+        self.image_duration = np.nan
+        self.reaction_time = np.nan
+        self.reaction_scantime = np.nan
+        self.stimulus_type = "HereWeGo"
+        self.response = "NA"
+        self.group_affiliation = "NA"
+        self.team = "NA"
+        self.gender = "NA"
+        self.race = "NA"
+        self.filename = "NA"
+        self.trial = "NA"
+        self.block = "NA"
+
+        # column headers of the specific data to import for this stimuli
+        self.durationField = ['HereWeGo.Duration']
+        self.inputFields = self.durationField
+
+    def clean(self, rawData, outputFields):
+        # combine duration data into one column
+        duration = rawData[self.durationField]
+        duration = duration.drop_duplicates().rename(columns={duration.columns[0]: 'duration'}).astype(int)
+
+        data = duration
+
+        # create columns for each field with the values set at initialization
+        # (this may not be used in certain versions of this script)
+        for attrName in outputFields:
+            attr = getattr(self, attrName)
+            if attr is not None:
+                data[attrName] = attr
+
+        return data
+
+
+class Team:
+    def __init__(self):
         self.onset = None
         self.duration = None
         self.image_onset = None
         self.image_duration = 3000
         self.reaction_time = None
         self.reaction_scantime = None
+        self.stimulus_type = "Image"
         self.response = None
         self.group_affiliation = None
         self.team = None

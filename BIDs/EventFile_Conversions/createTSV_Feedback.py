@@ -23,8 +23,8 @@ class Data:
         return readFields
 
     def __declareWriteFields(self):
-        writeFields = ['onset', 'duration', 'stim_onset', 'stim_duration', 'response_time',
-                       'response_scantime', 'anticipation_onset', 'anticipation_duration', 'feedback_onset',
+        writeFields = ['onset', 'duration', 'stim_onset', 'stim_duration', 'reaction_time',
+                       'reaction_scantime', 'anticipation_onset', 'anticipation_duration', 'feedback_onset',
                        'feedback_duration', 'feedback_type', 'stim_category', 'left_word', 'right_word',
                        'response', 'trial', 'block']
         return writeFields
@@ -59,7 +59,7 @@ class Data:
 
         data['onset'] = data['onset'].astype(int) - firstOnset
         data['stim_onset'] = data['stim_onset'].astype(int) - firstOnset
-        data['response_scantime'] = data['response_scantime'].astype(int) - firstOnset
+        data['reaction_scantime'] = data['reaction_scantime'].astype(int) - firstOnset
         data['anticipation_onset'] = data['anticipation_onset'].astype(int) - firstOnset
         data['feedback_onset'] = data['feedback_onset'].astype(int) - firstOnset
 
@@ -79,8 +79,8 @@ class Choice:
         self.duration = None
         self.stim_onset = None
         self.stim_duration = None
-        self.response_time = None
-        self.response_scantime = None
+        self.reaction_time = None
+        self.reaction_scantime = None
         self.anticipation_onset = None
         self.anticipation_duration = 2000
         self.feedback_onset = None
@@ -97,8 +97,8 @@ class Choice:
         self.durationField = ['Stim.OnsetTime']
         self.stim_onsetField = ['Stim.OnsetTime', 'fix.OnsetTime']
         self.stim_durationField = ['Stim.RT']
-        self.response_timeField = ['Stim.RT']
-        self.response_scantimeField = ['Stim.RTTime', 'fix.OnsetTime']
+        self.reaction_timeField = ['Stim.RT']
+        self.reaction_scantimeField = ['Stim.RTTime', 'fix.OnsetTime']
         self.anticipation_onsetField = ['Anticipation.OnsetTime', 'fix.OnsetTime']
         self.feedback_onsetField = ['Feedback.OnsetTime', 'fix.OnsetTime']
         self.feedback_durationField = ['Feedback.Duration']
@@ -110,8 +110,8 @@ class Choice:
         self.trialField = ['Trial']
         self.blockField = ['Block']
         self.inputFields = list(set(self.onsetField + self.durationField + self.stim_onsetField \
-                                    + self.stim_durationField + self.response_timeField \
-                                    + self.response_scantimeField + self.anticipation_onsetField \
+                                    + self.stim_durationField + self.reaction_timeField \
+                                    + self.reaction_scantimeField + self.anticipation_onsetField \
                                     + self.feedback_onsetField + self.feedback_durationField \
                                     + self.feedback_typeField + self.stim_categoryField + self.left_wordField \
                                     + self.right_wordField + self.responseField + self.trialField \
@@ -136,13 +136,21 @@ class Choice:
         stim_duration = rawData[self.stim_durationField]
         stim_duration = stim_duration.rename(columns={stim_duration.columns[0]: 'stim_duration'})
 
-        # extract response time
-        response_time = rawData[self.response_timeField]
-        response_time = response_time.rename(columns={response_time.columns[0]: 'response_time'})
+        # extract reaction time
+        reaction_time = rawData[self.reaction_timeField]
+        reaction_time = reaction_time.rename(columns={reaction_time.columns[0]: 'reaction_time'})
+        # change reaction time to nan when there is no response
+        response = rawData[self.responseField]
+        reaction_time.loc[np.isnan(response.iloc[:,0]), 'reaction_time'] = np.nan
+        reaction_time = reaction_time.astype('Int64')
 
         # calculate reaction scan time
-        response_scantime = rawData['Stim.RTTime'] - rawData['fix.OnsetTime']
-        response_scantime = response_scantime.to_frame('response_scantime').astype('Int64')
+        reaction_scantime = rawData['Stim.RTTime'] - rawData['fix.OnsetTime']
+        reaction_scantime = reaction_scantime.to_frame('reaction_scantime')
+        # change reaction scan time to nan when there is no response
+        response = rawData[self.responseField]
+        reaction_scantime.loc[np.isnan(response.iloc[:, 0]), 'reaction_scantime'] = np.nan
+        reaction_scantime = reaction_scantime.astype('Int64')
 
         # calculate anticipation onset
         anticipation_onset = rawData['Anticipation.OnsetTime'] - rawData['fix.OnsetTime']
@@ -156,9 +164,11 @@ class Choice:
         feedback_duration = rawData[self.feedback_durationField]
         feedback_duration = feedback_duration.rename(columns={feedback_duration.columns[0]: 'feedback_duration'})
 
-        # extract feedback type
+        # recode values for feedback type
         feedback_type = rawData[self.feedback_typeField]
+        feedback_typeRecodeVals = {"Pos": "pos", "Neg": "neg", "Neut": "neu"}
         feedback_type = feedback_type.rename(columns={feedback_type.columns[0]: 'feedback_type'})
+        feedback_type = feedback_type.replace({"feedback_type": feedback_typeRecodeVals})
 
         # extract stimulus category
         stim_category = rawData[self.stim_categoryField]
@@ -185,7 +195,7 @@ class Choice:
         block = rawData[self.blockField]
         block = block.rename(columns={block.columns[0]: 'block'})
 
-        data = pandas.concat([onset, duration, stim_onset, stim_duration, response_time, response_scantime,
+        data = pandas.concat([onset, duration, stim_onset, stim_duration, reaction_time, reaction_scantime,
                               anticipation_onset, feedback_onset, feedback_duration, feedback_type,
                               stim_category, left_word, right_word, response, trial, block], axis=1)
 

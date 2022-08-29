@@ -25,7 +25,7 @@ class Data:
     def __declareWriteFields(self):
         writeFields = ['onset', 'duration', 'image_onset', 'image_duration', 'reaction_time',
                        'reaction_scantime', 'jitter_onset', 'jitter_duration', 'response', 'correct_response',
-                       'accuracy', 'trial_type', 'target_label', 'distractor_label', 'ethnicity', 'image_file',
+                       'accuracy', 'trial_type', 'target_label', 'distractor_label', 'race', 'image_file',
                        'set', 'trial', 'block']
         return writeFields
 
@@ -88,7 +88,7 @@ class Faces:
         self.trial_type = None
         self.target_label = None
         self.distractor_label = None
-        self.ethnicity = None
+        self.race = None
         self.image_file = None
         self.set = None
         self.trial = None
@@ -108,7 +108,7 @@ class Faces:
         self.trial_typeField = ['BlkList']
         self.target_labelField = ['Target']
         self.distractor_labelField = ['Distraction']
-        self.ethnicityField = ['Ethnicity']
+        self.raceField = ['Ethnicity']
         self.image_fileField = ['Image']
         self.setField = ['Condition']
         self.trialField = ['Trial']
@@ -119,7 +119,7 @@ class Faces:
                                     + self.jitter_durationField + self.responseField \
                                     + self.correct_responseField + self.accuracyField + self.trial_typeField \
                                     + self.target_labelField + self.distractor_labelField \
-                                    + self.ethnicityField + self.image_fileField + self.setField \
+                                    + self.raceField + self.image_fileField + self.setField \
                                     + self.trialField + self.blockField))
 
     def error_check(self, dataName, data):
@@ -206,10 +206,11 @@ class Faces:
         distractor_labelRecodeVals = {' ': np.nan}
         distractor_label = distractor_label.rename(columns={distractor_label.columns[0]: 'distractor_label'}).replace({'distractor_label': distractor_labelRecodeVals})
 
-        # extract ethnicity
-        ethnicity = rawData[self.ethnicityField]
-        ethnicityRecodeVals = {' ': np.nan}
-        ethnicity = ethnicity.rename(columns={ethnicity.columns[0]: 'ethnicity'}).replace({'ethnicity': ethnicityRecodeVals})
+        # extract ethnicity/race and strip all white space
+        race = rawData[self.raceField]
+        raceRecodeVals = {' ': np.nan}
+        race = race.rename(columns={race.columns[0]: 'race'}).replace({'race': raceRecodeVals})
+        race['race'] = race['race'].str.replace(" ", "")
 
         # extract image file name
         image_file = rawData[self.image_fileField]
@@ -229,7 +230,7 @@ class Faces:
 
         data = pandas.concat([onset, duration, image_onset, image_duration, reaction_time, reaction_scantime,
                               jitter_onset, jitter_duration, response, correct_response, accuracy, trial_type,
-                              target_label, distractor_label, ethnicity, image_file, set, trial, block], axis=1)
+                              target_label, distractor_label, race, image_file, set, trial, block], axis=1)
 
         # create columns for each field with the values set at initialization
         # (this may not be used in certain versions of this script)
