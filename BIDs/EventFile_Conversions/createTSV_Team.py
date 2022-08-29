@@ -231,23 +231,11 @@ class Team:
 # path to data
 # note that this task has data split across several folders
 basefolder = "/mnt/magaj/SNAP/Data/Task Behavioral Data for BIDS/"
-# snap1datadir1 = basefolder + "SNAP 1/Team Game/Pre Scan Training/Edat/"
-# snap1datadir2 = basefolder + "SNAP 1/Team Game/Pre Scan Training/New Edat/"
 snap1datadir1 = basefolder + "SNAP 1/Team Game/Scan Task/Edat/"
 snap1datadir2 = basefolder + "SNAP 1/Team Game/Scan Task/New Edat/"
-# snap1datadir1 = basefolder + "SNAP 1/Team Game/Post Scan Memory/Edat/"
-# snap1datadir2 = basefolder + "SNAP 1/Team Game/Post Scan Memory/New Edat/"
 
 # output folder
-# snap1outdir = basefolder + "Converted Files/SNAP 1/Team/Pre Scan Training/"
 snap1outdir = basefolder + "Converted Files/SNAP 1/Team/Scan Task/"
-# snap1outdir = basefolder + "Converted Files/SNAP 1/Team/Post Scan Memory/"
-
-# Error check to make sure the right input/output pair is in place
-assert ("Pre Scan Training" in snap1datadir1 and "Pre Scan Training" in snap1datadir2 and "Pre Scan Training" in snap1outdir) or \
-       ("Scan Task" in snap1datadir1 and "Scan Task" in snap1datadir2 and "Scan Task" in snap1outdir) or \
-       ("Post Scan Memory" in snap1datadir1 and "Post Scan Memory" in snap1datadir2 and "Post Scan Memory" in snap1outdir), \
-       "Input and output directories don't correspond."
 
 # getting list of files and their paths
 snap1files1 = [f for f in listdir(snap1datadir1) if isfile(join(snap1datadir1, f))]
@@ -272,12 +260,7 @@ for i, datafile in enumerate(snap1files):
             raise Exception('Two file names found with the numbers {}. Rename to prevent overwriting.'.format(subjID))
         else:
             seenIDs.append(subjID)
-            if "Pre Scan Training" in snap1outdir:
-                outputfile = "sub-" + subjID.zfill(5) + "_task-prescan-team_events.tsv"
-            elif "Post Scan Memory" in snap1outdir:
-                outputfile = "sub-" + subjID.zfill(5) + "_task-postscan-team_events.tsv"
-            elif "Scan Task" in snap1outdir:
-                outputfile = "sub-" + subjID.zfill(5) + "_task-team_run01_events.tsv"
+            outputfile = "sub-" + subjID.zfill(5) + "_task-team_run01_events.tsv"
 
         thisData.write(join(snap1outdir, outputfile))
     except:
