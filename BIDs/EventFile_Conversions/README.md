@@ -7,12 +7,13 @@ Below is the current state of the event file conversions.
 + **GoNoGo** -- Ready for tsv output review.
 + **DotProbe** -- Ready for tsv output review.
 + **Driving** -- Ready for code review.
-+ **Driving Practice** -- Need to create conversion instructions.
++ **Driving Practice** -- Need to review source event files to determine data to keep.
 + **Emotion** -- Ready for code review.
 + **Feedback** -- Ready for code review.
 + **Team** -- Ready for code review.
-+ **Team Pre/Post** -- Need to create conversion instructions.
-+ **Cyberball** -- Needs code developed.
++ **Team Pre** -- Needs code developed.
++ **Team Post** -- Needs code developed.
++ **Cyberball** -- Needs example tsv created.
 
 ## Process
 This process includes the following stages.
