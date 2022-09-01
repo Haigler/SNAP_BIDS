@@ -156,7 +156,7 @@ class Team:
         onset = rawData['Stim.OnsetTime'] - rawData['HereWeGo.OnsetTime'].iloc[0]
         onset = onset.to_frame('onset')
 
-        # combine duration data into one column
+        # calculate duration
         duration = rawData[self.durationField]
         duration = duration.diff()
         duration = duration.reindex(index=np.roll(duration.index, -1)).reset_index(drop=True)
