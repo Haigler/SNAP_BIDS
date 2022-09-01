@@ -46,7 +46,6 @@ class Data:
 
         # drop rows with all NA/nan values
         cleanedData.dropna(how='all', inplace=True)
-        cleanedData.reset_index(drop=True, inplace=True)
 
         # shift all time stamps so the experiment starts at time 0
         cleanedData = self.__shiftTime(cleanedData)

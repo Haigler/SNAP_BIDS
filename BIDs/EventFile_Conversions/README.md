@@ -11,7 +11,7 @@ Below is the current state of the event file conversions.
 + **Emotion** -- Ready for code review.
 + **Feedback** -- Ready for code review.
 + **Team** -- Ready for code review.
-+ **Team Pre** -- Needs code developed.
++ **Team Pre** -- Ready for code review.
 + **Team Post** -- Needs code developed.
 + **Cyberball** -- Needs example tsv created.
 
