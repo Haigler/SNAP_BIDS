@@ -14,7 +14,7 @@ class Data:
     def __init__(self, dataFileName):
         self.contents = None
         self.dataFile = dataFileName
-        self.stimuli = [HereWeGo(), Sample(), PreStimulus()] #, Image(), IRI()]
+        self.stimuli = [HereWeGo(), Sample(), PreStimulus(), Image(), IRI()]
         self.readFields = self.__declareReadFields()
         self.writeFields = self.__declareWriteFields()
 
@@ -236,6 +236,171 @@ class PreStimulus:
                 data[attrName] = attr
 
         return data
+
+class Image:
+    def __init__(self):
+        self.onset = None
+        self.duration = None
+        self.reaction_time = None
+        self.reaction_exptime = None
+        self.stimulus_type = "Image"
+        self.response = None
+        self.accuracy = None
+        self.group_affiliation = None
+        self.team = None
+        self.gender = None
+        self.race = None
+        self.filename = None
+        self.photo_group = None
+        self.trial = None
+
+        # column headers of the specific data to import for this stimuli
+        self.onsetField = ['Stim1.OnsetTime']
+        self.durationField = ['Stim1.OffsetTime', 'Stim1.OnsetTime']
+        self.reaction_timeField = ['Stim1.RT']
+        self.reaction_exptimeField = ['Stim1.RTTime']
+        self.responseField = ['Stim1.RESP']
+        self.accuracyField = ['Stim1.RESP', 'CorrectAnswer']
+        self.group_affiliationField = ['In1_Out2']
+        self.teamField = ['Team']
+        self.genderField = ['Gender']
+        self.raceField = ['Race']
+        self.filenameField = ['Image']
+        self.photo_groupField = ['PhotoGroup']
+        self.trialField = ['Trial']
+
+        self.inputFields = list(set(self.onsetField + self.durationField + self.reaction_timeField \
+                                    + self.reaction_exptimeField + self.responseField \
+                                    + self.accuracyField + self.group_affiliationField + self.teamField \
+                                    + self.genderField + self.raceField + self.filenameField \
+                                    + self.photo_groupField + self.trialField))
+
+    def clean(self, rawData, outputFields):
+        # extract onset time
+        onset = rawData[self.onsetField]
+        onset = onset.rename(columns={onset.columns[0]: 'onset'})
+
+        # extract duration
+        duration = rawData['Stim1.OffsetTime'] - rawData['Stim1.OnsetTime']
+        duration = duration.to_frame('duration')
+
+        # extract reaction time
+        reaction_time = rawData[self.reaction_timeField]
+        reaction_time = reaction_time.rename(columns={reaction_time.columns[0]: 'reaction_time'})
+
+        # extract reaction experiment time
+        reaction_exptime = rawData[self.reaction_exptimeField]
+        reaction_exptime = reaction_exptime.rename(columns={reaction_exptime.columns[0]: 'reaction_exptime'})
+
+        # recode values for response
+        response = rawData[self.responseField]
+        responseRecodeVals = {'p': "CHANGETHIS!!", 'q': "CHANGETHIS!!"}
+        response = response.rename(columns={response.columns[0]: 'response'}).replace({'response': responseRecodeVals})
+
+        # calculate accuracy
+        correct = response['response'] == rawData['CorrectAnswer']
+        accuracy = correct.to_frame('accuracy')
+        accuracy = accuracy.where(correct, other="incorrect")
+        accuracy = accuracy.where(~correct, other="correct")
+        accuracy = accuracy.mask(response['response'].isnull(), other=np.nan)
+
+        # recode values for group affiliation
+        group_affiliation = rawData[self.group_affiliationField]
+        group_affiliationRecodeVals = {1: "ingroup", 2: "outgroup", 3: "unaffiliated"}
+        group_affiliation = group_affiliation.rename(
+            columns={group_affiliation.columns[0]: 'group_affiliation'}).replace(
+            {'group_affiliation': group_affiliationRecodeVals})
+
+        # extract team membership
+        team = rawData[self.teamField]
+        team = team.rename(columns={team.columns[0]: 'team'})
+
+        # extract gender
+        gender = rawData[self.genderField]
+        gender = gender.rename(columns={gender.columns[0]: 'gender'})
+
+        # extract race
+        race = rawData[self.raceField]
+        race = race.rename(columns={race.columns[0]: 'race'}).replace('', "NA")
+
+        # extract filename
+        filename = rawData[self.filenameField]
+        filename = filename.rename(columns={filename.columns[0]: 'filename'})
+
+        # recode values for photo group
+        photo_group = rawData[self.photo_groupField]
+        photo_groupRecodeVals = {'1': "bar", '2': "baz", 'D': "foo"}
+        photo_group = photo_group.rename(
+            columns={photo_group.columns[0]: 'photo_group'}).replace(
+            {'photo_group': photo_groupRecodeVals})
+
+        # extract trial number
+        trial = rawData[self.trialField]
+        trial = trial.rename(columns={trial.columns[0]: 'trial'})
+
+        data = pandas.concat(
+            [onset, duration, reaction_time, reaction_exptime, response, accuracy, group_affiliation,
+             team, gender, race, filename, photo_group, trial], axis=1)
+
+        # create columns for each field with the values set at initialization
+        # (this may not be used in certain versions of this script)
+        for attrName in outputFields:
+            attr = getattr(self, attrName)
+            if attr is not None:
+                data[attrName] = attr
+
+        return data
+
+class IRI:
+    def __init__(self):
+        self.onset = None
+        self.duration = None
+        self.reaction_time = np.nan
+        self.reaction_exptime = np.nan
+        self.stimulus_type = "IRI"
+        self.response = "NA"
+        self.accuracy = "NA"
+        self.group_affiliation = "NA"
+        self.team = "NA"
+        self.gender = "NA"
+        self.race = "NA"
+        self.filename = "NA"
+        self.photo_group = "NA"
+        self.trial = None
+
+        # column headers of the specific data to import for this stimuli
+        self.onsetField = ['IRI.OnsetTime']
+        self.durationField = ['IRI.Duration']
+        self.trialField = ['Trial']
+
+        self.inputFields = list(set(self.onsetField + self.durationField \
+                                    + self.trialField))
+
+    def clean(self, rawData, outputFields):
+        # extract onset time
+        onset = rawData[self.onsetField]
+        onset = onset.rename(columns={onset.columns[0]: 'onset'})
+
+        # extract duration
+        duration = rawData[self.durationField]
+        duration = duration.rename(columns={duration.columns[0]: 'duration'})
+
+        # extract trial number
+        trial = rawData[self.trialField]
+        trial = trial.rename(columns={trial.columns[0]: 'trial'})
+
+        data = pandas.concat(
+            [onset, duration, trial], axis=1)
+
+        # create columns for each field with the values set at initialization
+        # (this may not be used in certain versions of this script)
+        for attrName in outputFields:
+            attr = getattr(self, attrName)
+            if attr is not None:
+                data[attrName] = attr
+
+        return data
+
 
 # path to data
 # note that this task has data split across several folders

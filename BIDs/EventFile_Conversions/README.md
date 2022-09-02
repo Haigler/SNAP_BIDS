@@ -12,7 +12,7 @@ Below is the current state of the event file conversions.
 + **Feedback** -- Ready for code review.
 + **Team** -- Ready for code review.
 + **Team Pre** -- Ready for code review.
-+ **Team Post** -- Needs code developed.
++ **Team Post** -- Ready for code review.
 + **Cyberball** -- Needs example tsv created.
 
 ## Process
