@@ -25,7 +25,7 @@ class Data:
         return readFields
 
     def __declareWriteFields(self):
-        writeFields = ['onset', 'duration', 'reaction_time', 'reaction_exptime', 'stimulus_type',
+        writeFields = ['onset', 'duration', 'reaction_time', 'reaction_exptime', 'trial_type',
                        'response', 'accuracy', 'group_affiliation', 'team', 'gender', 'race',
                        'filename', 'photo_group', 'trial']
         return writeFields
@@ -77,7 +77,7 @@ class HereWeGo:
         self.duration = None
         self.reaction_time = np.nan
         self.reaction_exptime = np.nan
-        self.stimulus_type = "HereWeGo"
+        self.trial_type = "HereWeGo"
         self.response = "NA"
         self.accuracy = "NA"
         self.group_affiliation = "NA"
@@ -123,7 +123,7 @@ class Sample:
         self.duration = None
         self.reaction_time = None
         self.reaction_exptime = None
-        self.stimulus_type = "Sample"
+        self.trial_type = "Sample"
         self.response = None
         self.accuracy = "NA"
         self.group_affiliation = "NA"
@@ -193,7 +193,7 @@ class PreStimulus:
         self.duration = None
         self.reaction_time = np.nan
         self.reaction_exptime = np.nan
-        self.stimulus_type = "PreStimulus"
+        self.trial_type = "PreStimulus"
         self.response = "NA"
         self.accuracy = "NA"
         self.group_affiliation = "NA"
@@ -243,7 +243,7 @@ class Image:
         self.duration = None
         self.reaction_time = None
         self.reaction_exptime = None
-        self.stimulus_type = "Image"
+        self.trial_type = "Image"
         self.response = None
         self.accuracy = None
         self.group_affiliation = None
@@ -357,7 +357,7 @@ class IRI:
         self.duration = None
         self.reaction_time = np.nan
         self.reaction_exptime = np.nan
-        self.stimulus_type = "IRI"
+        self.trial_type = "IRI"
         self.response = "NA"
         self.accuracy = "NA"
         self.group_affiliation = "NA"

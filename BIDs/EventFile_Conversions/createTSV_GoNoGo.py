@@ -24,7 +24,7 @@ class Data:
 
     def __declareWriteFields(self):
         writeFields = ['onset', 'duration', 'image_onset', 'image_duration', 'letter_onset', 'letter_duration',
-                       'reaction_time', 'reaction_scantime', 'stimulus_type', 'valence', 'gonogo', 'response',
+                       'reaction_time', 'reaction_scantime', 'trial_type', 'valence', 'gonogo', 'response',
                        'image_file', 'letter', 'set', 'trial', 'block']
         return writeFields
 
@@ -75,7 +75,7 @@ class HereWeGo:
         # None values need to be calculated for each trial/subject from the subject file
         self.onset = None
         self.duration = 3000
-        self.stimulus_type = "HereWeGo"
+        self.trial_type = "HereWeGo"
         self.valence = "NA"
         self.gonogo = np.nan
         self.response = np.nan
@@ -128,7 +128,7 @@ class Interblock:
     def __init__(self):
         self.onset = None
         self.duration = 7000
-        self.stimulus_type = "Interblock"
+        self.trial_type = "Interblock"
         self.valence = "NA"
         self.gonogo = np.nan
         self.response = np.nan
@@ -176,7 +176,7 @@ class Image:
     def __init__(self):
         self.onset = None
         self.duration = 800
-        self.stimulus_type = "Image/Letter"
+        self.trial_type = "Image/Letter"
         self.valence = None
         self.gonogo = None
         self.response = None

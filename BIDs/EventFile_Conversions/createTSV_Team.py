@@ -26,7 +26,7 @@ class Data:
 
     def __declareWriteFields(self):
         writeFields = ['onset', 'duration', 'image_onset', 'image_duration', 'reaction_time',
-                       'reaction_scantime', 'stimulus_type', 'response', 'group_affiliation',
+                       'reaction_scantime', 'trial_type', 'response', 'group_affiliation',
                        'team', 'gender', 'race', 'filename', 'trial', 'block']
         return writeFields
 
@@ -67,7 +67,7 @@ class HereWeGo:
         self.image_duration = np.nan
         self.reaction_time = np.nan
         self.reaction_scantime = np.nan
-        self.stimulus_type = "HereWeGo"
+        self.trial_type = "HereWeGo"
         self.response = "NA"
         self.group_affiliation = "NA"
         self.team = "NA"
@@ -106,7 +106,7 @@ class Team:
         self.image_duration = 3000
         self.reaction_time = None
         self.reaction_scantime = None
-        self.stimulus_type = "Image"
+        self.trial_type = "Image"
         self.response = None
         self.group_affiliation = None
         self.team = None
