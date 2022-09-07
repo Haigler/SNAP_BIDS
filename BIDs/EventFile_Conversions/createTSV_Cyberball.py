@@ -290,8 +290,8 @@ class Throw:
         self.durationField = ['MyImageDisplay.OnsetTime', 'MyImageDisplay.OffsetTime']
         self.throwerField = ['filename']
         self.catcherField = ['filename']
-        self.blockField = ['block']
-        self.throw_patternField = ['Running[Block]']
+        self.blockField = ['Block']
+        self.throw_patternField = ['Running\[Block\]']
         self.filenamesField = ['filename']
         self.image_durationsField = ['MyImageDisplay.OnsetTime', 'MyImageDisplay.OffsetTime']
         self.inputFields = list(set(self.onsetField + self.durationField + self.throwerField
@@ -299,7 +299,63 @@ class Throw:
                                     + self.filenamesField + self.image_durationsField))
 
     def clean(self, rawData, outputFields):
-        pass
+        # data for all throw events are within the same columns
+        # must parse filenames column to identify individual events
+        names = rawData['filename'].str.replace(r'.\d.bmp', '')
+        eventStart = (names != names.shift(periods=1))
+        eventEnd = (names != names.shift(periods=-1))
+
+        # extract onsets
+        onset = rawData[self.onsetField].loc[eventStart]
+        onset = onset.rename(columns={onset.columns[0]: 'onset'}).reset_index(drop=True)
+
+        # calculate duration
+        offset = rawData['MyImageDisplay.OffsetTime'].loc[eventEnd].reset_index(drop=True)
+        duration = offset - onset['onset']
+        duration = duration.to_frame('duration').astype('Int64')
+
+        # extract thrower and recode
+        thrower = rawData['filename'].loc[eventStart]
+        thrower = thrower.str.replace(r'to\d.\d.bmp', '')
+        # double cast as work around for pandas bug. See github.com/pandas-dev/pandas/pull/43949
+        thrower = thrower.reset_index(drop=True).to_frame('thrower').astype(float).astype('Int64')
+        throwerRecodeVals = {1: "bar", 2: "subject", 3: "foo"}
+        thrower = thrower.replace({"thrower": throwerRecodeVals})
+
+        # extract catcher and recode
+        catcher = rawData['filename'].loc[eventStart]
+        catcher = catcher.str.replace(r'\dto', '').str.replace(r'.\d.bmp', '')
+        catcher = catcher.reset_index(drop=True).to_frame('catcher').astype(float).astype('Int64')
+        catcherRecodeVals = {1: "bar", 2: "subject", 3: "foo"}
+        catcher = catcher.replace({"catcher": catcherRecodeVals})
+
+        # extract block
+        block = rawData[self.blockField].loc[eventStart]
+        block = block.reset_index(drop=True).rename(columns={block.columns[0]: 'block'}).astype(int)
+
+        # extract throw pattern
+        throw_pattern = rawData['Running[Block]'].loc[eventStart]
+        throw_pattern = throw_pattern.str.replace(r'throw', '')
+        throw_pattern = throw_pattern.reset_index(drop=True).to_frame('throw_pattern').astype(str)
+
+        # extract filenames and image durations
+        eventFiles = []
+        eventDurations = []
+        for i, fname in rawData['filenames']:
+            if eventStart[i]:
+                pass
+
+        data = pandas.concat([onset, duration, thrower, catcher,
+                              block, throw_pattern], axis=1)
+
+        # create columns for each field with the values set at initialization
+        # (this may not be used in certain versions of this script)
+        for attrName in outputFields:
+            attr = getattr(self, attrName)
+            if attr is not None:
+                data[attrName] = attr
+
+        return data
 
 # path to data
 basefolder = "/mnt/magaj/SNAP/Data/Task Behavioral Data for BIDS/"
