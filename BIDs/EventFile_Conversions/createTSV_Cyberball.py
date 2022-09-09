@@ -292,11 +292,14 @@ class Image:
 
         # recode response
         response = pandas.DataFrame(response, columns=['response'], dtype=str)
-        responseRecodeVals = {'2': "CHANGETHIS!!", '7': "CHANGETHIS!!"}
+        responseRecodeVals = {'2': "CHANGETHIS!!", '7': "CHANGETHIS!!", 'nan': "NA"}
         response = response.replace({'response': responseRecodeVals})
 
+        no_response = (response['response'] == "NA")
         reaction_time = pandas.DataFrame(reaction_time, columns=['reaction_time'], dtype=pandas.Int64Dtype())
+        reaction_time[no_response] = np.nan
         reaction_scantime = pandas.DataFrame(reaction_scantime, columns=['reaction_scantime'], dtype=pandas.Int64Dtype())
+        reaction_scantime[no_response] = np.nan
 
         image_number = pandas.DataFrame(image_number, columns=['image_number'],
                                              dtype=int)
