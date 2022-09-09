@@ -100,9 +100,14 @@ class Data:
         exclusionthrow[first_exclthrows] = True
         inclusionthrow = (data['trial_type'] == 'Throw') & ~exclusionthrow
 
+        # mark all images with the value of a following throw
+        exclusionimage = exclusionthrow.shift(periods=-1) & (data['trial_type'] == 'Image')
+        inclusionimage = inclusionthrow.shift(periods=-1) & (data['trial_type'] == 'Image')
+
+
         # updating clusivity
-        data['clusivity'][exclusionthrow] = 'exclusion'
-        data['clusivity'][inclusionthrow] = 'inclusion'
+        data['clusivity'][exclusionthrow | exclusionimage] = 'exclusion'
+        data['clusivity'][inclusionthrow | inclusionimage] = 'inclusion'
 
         return data
 
