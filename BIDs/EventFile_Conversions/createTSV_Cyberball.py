@@ -59,9 +59,52 @@ class Data:
         cleanedData.replace(np.nan, 'NA', inplace=True)
 
         # sort by onset time
-        cleanedData.sort_values(by='onset', inplace=True)
+        try:
+            cleanedData.sort_values(by='onset', inplace=True)
+        except:
+            # note that SNAP 2, sub-01008 is missing onset time for one throw
+            # placing at bottom of data until it gets sorted out
+            dataMissingOnsets = cleanedData.loc[cleanedData['onset'] == "NA"]
+            dataWithOnsets = cleanedData.loc[cleanedData['onset'] != "NA"]
+            dataWithOnsets.sort_values(by='onset', inplace=True)
+            cleanedData = dataWithOnsets.append(dataMissingOnsets)
+
+        # determine values for 'clusivity' column
+        # resets row index for iteration
+        cleanedData = self.__addClusivity(cleanedData)
 
         self.contents = cleanedData
+
+    def __addClusivity(self, data):
+        data = data.reset_index(drop=True)
+
+        # mark throw events
+        throws = pandas.Series(0, index=range(len(data.index)))
+        throws[data['trial_type'] == 'Throw'] = 1
+
+        # find and count all consecutive throws
+        t = throws.diff().ne(0) # mark start of groupings of consecutive throw/non-throw events
+        tgrp = t.cumsum() # assign a group number for each grouping
+        cnt = throws.groupby(tgrp).cumcount() # use group number to count events within groups
+        consecthrow = throws * (cnt + 1) # zero out non-throw counts
+
+        # find consecutive throws meeting criteria for exclusion
+        gt5 = consecthrow > 5 # exculsion is defined as >5 consecutive throw events
+        gt5startIndx = list(consecthrow.index[consecthrow == 6]) # find where consecutive throws become >5
+
+        # mark all throws belonging to an exclusion group of throws then use to find inclusion throws.
+        startIndx = [x-5 for x in gt5startIndx] # start of exclusion throws
+        indxlists = [list(range(start, end)) for (start, end) in zip(startIndx, gt5startIndx)]
+        first_exclthrows = [item for sublist in indxlists for item in sublist]  # flattening list of lists
+        exclusionthrow = gt5
+        exclusionthrow[first_exclthrows] = True
+        inclusionthrow = (data['trial_type'] == 'Throw') & ~exclusionthrow
+
+        # updating clusivity
+        data['clusivity'][exclusionthrow] = 'exclusion'
+        data['clusivity'][inclusionthrow] = 'inclusion'
+
+        return data
 
     def write(self, outputfile):
         if self.contents is not None:
@@ -291,7 +334,7 @@ class Throw:
         self.throwerField = ['filename']
         self.catcherField = ['filename']
         self.blockField = ['Block']
-        self.throw_patternField = ['Running\[Block\]']
+        self.throw_patternField = ['Running\[Block\]|RunningBlock']
         self.filenamesField = ['filename']
         self.image_durationsField = ['MyImageDisplay.OnsetTime', 'MyImageDisplay.OffsetTime']
         self.inputFields = list(set(self.onsetField + self.durationField + self.throwerField
@@ -334,19 +377,39 @@ class Throw:
         block = block.reset_index(drop=True).rename(columns={block.columns[0]: 'block'}).astype(int)
 
         # extract throw pattern
-        throw_pattern = rawData['Running[Block]'].loc[eventStart]
-        throw_pattern = throw_pattern.str.replace(r'throw', '')
-        throw_pattern = throw_pattern.reset_index(drop=True).to_frame('throw_pattern').astype(str)
+        # note that across subjects raw data uses different naming conventions for this header
+        throw_pattern = rawData.filter(regex=self.throw_patternField[0]).loc[eventStart]
+        throw_pattern = throw_pattern.replace('throw', '', regex=True)
+        throw_pattern = throw_pattern.reset_index(drop=True).rename(columns={throw_pattern.columns[0]: 'throw_pattern'}).astype(str)
 
-        # extract filenames and image durations
-        eventFiles = []
-        eventDurations = []
-        for i, fname in rawData['filenames']:
+        # Collect all filenames and image durations for each throw event into single entries.
+        filenames = []
+        image_durations = []
+        imgdurs = rawData['MyImageDisplay.OffsetTime'] - rawData['MyImageDisplay.OnsetTime']
+        for i, (fname, imgdur) in enumerate(zip(rawData['filename'], imgdurs)):
+            # some values missing in SNAP 2 data (last throw in sub-01008 specifically)
+            if pandas.isnull(fname): fname = "NA"
+            if pandas.isnull(imgdur): imgdur = "NA"
+
             if eventStart[i]:
-                pass
+                if eventEnd[i]:  # for single image throw events where the start is also the end
+                    filenames.append('[\'' + fname + '\']')
+                    image_durations.append('[' + str(imgdur) + ']')
+                else:
+                    filestr = '[\'' + fname + '\', '
+                    durstr = '[' + str(imgdur) + ', '
+            elif eventEnd[i]:
+                filenames.append(filestr + '\'' + fname + '\']')
+                image_durations.append(durstr + str(imgdur) + ']')
+            else:
+                filestr = filestr + '\'' + fname + '\', '
+                durstr = durstr + str(imgdur) + ', '
 
-        data = pandas.concat([onset, duration, thrower, catcher,
-                              block, throw_pattern], axis=1)
+        filenames = pandas.DataFrame(filenames, columns=['filenames'], dtype=str)
+        image_durations = pandas.DataFrame(image_durations, columns=['image_durations'], dtype=str)
+
+        data = pandas.concat([onset, duration, thrower, catcher, block,
+                              throw_pattern, filenames, image_durations], axis=1)
 
         # create columns for each field with the values set at initialization
         # (this may not be used in certain versions of this script)
