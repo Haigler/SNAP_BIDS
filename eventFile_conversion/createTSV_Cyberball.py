@@ -429,7 +429,7 @@ class Throw:
         return data
 
 # path to data
-basefolder = "/mnt/magaj/SNAP/Data/Task Behavioral Data for BIDS/"
+basefolder = "/g/Imaging/SNAP/Data/Task Behavioral Data for BIDS/"
 snap1datadir = basefolder + "SNAP 1/Cyberball (Catch)/"
 snap2datadir = basefolder + "SNAP 2/Cyberball (Catch)/"
 snap3datadir = basefolder + "SNAP 3/Cyberball (Catch)/"
