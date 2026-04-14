@@ -1,0 +1,8 @@
+# Expected event files for the cyberball task.
+# Lists all files intended to be moved (can leave problematic event files behind!).
+# One filename per line. Lines starting with # are ignored.
+#
+sub-04007_task-cyberball_run-1_events.tsv
+sub-04020_task-cyberball_run-1_events.tsv
+sub-06022_task-cyberball_run-1_events.tsv
+sub-06029_task-cyberball_run-3_events.tsv

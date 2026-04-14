@@ -15,9 +15,14 @@ class Data:
     def __init__(self, dataFileName):
         self.contents = None
         self.dataFile = dataFileName
-        self.stimuli = [HereWeGo(), Rest(), Image(), Throw()]
+        self.stimuli = [HereWeGo(), Rest(), Decision(), Throw()]
         self.readFields = self.__declareReadFields()
         self.writeFields = self.__declareWriteFields()
+        self.qc_flags = {
+            'ghost_decisions': False,
+            'ghost_throws': False,
+            'out_of_sequence_throws': False,
+        } # These are meant to flag unexpected patterns noticed during visual inspection of data
 
     def __declareReadFields(self):
         readFields = []
@@ -55,28 +60,104 @@ class Data:
             stimData = stimType.clean(self.contents, self.writeFields)
             cleanedData = pandas.concat([cleanedData, stimData])
 
-        # replace all nan with 'NA'
-        cleanedData.replace(np.nan, 'NA', inplace=True)
+        # convert units from millisecond to seconds
+        cols = ['onset', 'duration', 'reaction_time', 'reaction_scantime']
+        cleanedData[cols] = cleanedData[cols].apply(pandas.to_numeric, errors='coerce') # to make numeric manipulation easier
+        cleanedData[cols] = (cleanedData[cols] / 1000).round(3)
 
         # sort by onset time
-        try:
-            cleanedData.sort_values(by='onset', inplace=True)
-        except:
-            # note that SNAP 2, sub-01008 is missing onset time for one throw
-            # placing at bottom of data until it gets sorted out
-            dataMissingOnsets = cleanedData.loc[cleanedData['onset'] == "NA"]
-            dataWithOnsets = cleanedData.loc[cleanedData['onset'] != "NA"]
-            dataWithOnsets.sort_values(by='onset', inplace=True)
-            cleanedData = dataWithOnsets.append(dataMissingOnsets)
+        # note that SNAP 2, sub-01008 is missing onset time for one throw. this will go to the bottom
+        cleanedData.sort_values(by='onset', inplace=True)
+
+        # adjust so start of data collection (onset = 0) is synced to the first HereWeGo.
+        match = cleanedData.loc[cleanedData['trial_type'] == 'HereWeGo', 'onset']
+        cleanedData[['onset', 'reaction_scantime']] -= match.iloc[0]
+
+        # remove "ghost" events in the data that are likely artifacts and never shown to subject
+        # resets row index for iteration
+        cleanedData = self.__removeGhostEvents(cleanedData)
 
         # determine values for 'clusivity' column
-        # resets row index for iteration
         cleanedData = self.__addClusivity(cleanedData)
+
+        # Assign Decision trials to the following block number.
+        mask = (
+                (cleanedData['trial_type'] == 'Decision') &
+                (cleanedData['block'].shift(-1) != 'n/a')
+        )
+
+        cleanedData.loc[mask, 'block'] = cleanedData['block'].shift(-1)
+
+        # Change a Decision trial to a WaitForThrow trial. this should exclusively be the first
+        # stimuli after HereWeGo in the inclusion round, when the ball starts with another player.
+        mask = (
+                (cleanedData['trial_type'] == 'Decision') &
+                (cleanedData['response'] == 'n/a') &
+                (cleanedData['trial_type'].shift(-1) == 'Throw') &
+                (cleanedData['thrower'].shift(-1) != 'subject')
+        )
+
+        cleanedData.loc[mask, 'trial_type'] = 'WaitForThrow'
 
         self.contents = cleanedData
 
-    def __addClusivity(self, data):
+    def __removeGhostEvents(self, data):
         data = data.reset_index(drop=True)
+
+        decision_ghost = (
+                (data["trial_type"] == "Decision")
+                & data["response"].isna()
+                & (data["reaction_time"] == 0)
+                & (data["reaction_scantime"] < 0)
+        )
+
+        # A single-element list (e.g., "['1to3.1.bmp']") starts with
+        # '[' and contains no commas.
+        single_file =(data["filenames"].str.startswith("[")
+                       & ~data["filenames"].str.contains(",", regex=False))
+        single_dur = (data["image_durations"].str.startswith("[")
+                      & ~data["image_durations"].str.contains(",", regex=False))
+
+        throw_ghost = (
+                (data["trial_type"] == "Throw")
+                & single_file
+                & single_dur
+        )
+
+        if decision_ghost.any():
+            self.qc_flags['ghost_decisions'] = True
+        if throw_ghost.any():
+            self.qc_flags['ghost_throws'] = True
+
+        ghosts = decision_ghost | throw_ghost
+
+        data = data[~ghosts].reset_index(drop=True)
+
+        # validate throw continuity within rounds (rounds demarcated by 'Rest' and 'HereWeGo'
+        self.__validateThrowSequences(data)
+
+        return data
+
+    def __validateThrowSequences(self, data):
+        is_boundary = data['trial_type'].isin(['Rest', 'HereWeGo'])
+        round_id = is_boundary.cumsum()
+
+        is_throw = data["trial_type"] == "Throw"
+        assert is_throw.any(), "No throws detected."
+
+        throws = data.loc[is_throw, ["onset", "thrower", "catcher", "block"]].copy()
+        throws["_round"] = round_id[is_throw].values
+
+        # split throws into their separate rounds (should be continuous sequence within rounds)
+        rounds = [grp for _, grp in throws.groupby("_round")]
+
+        for rnd in rounds:
+            mismatches = (rnd["thrower"] != rnd["catcher"].shift()).iloc[1:]
+            if len(rnd) < 2 or mismatches.any():
+                self.qc_flags['out_of_sequence_throws'] = True
+
+    def __addClusivity(self, data):
+        data = data.reset_index(drop=True) # don't count on this being done before now.
 
         # mark throw events
         throws = pandas.Series(0, index=range(len(data.index)))
@@ -89,7 +170,7 @@ class Data:
         consecthrow = throws * (cnt + 1) # zero out non-throw counts
 
         # find consecutive throws meeting criteria for exclusion
-        gt5 = consecthrow > 5 # exculsion is defined as >5 consecutive throw events
+        gt5 = consecthrow > 5 # exclusion is defined as >5 consecutive throw events
         gt5startIndx = list(consecthrow.index[consecthrow == 6]) # find where consecutive throws become >5
 
         # mark all throws belonging to an exclusion group of throws then use to find inclusion throws.
@@ -100,20 +181,15 @@ class Data:
         exclusionthrow[first_exclthrows] = True
         inclusionthrow = (data['trial_type'] == 'Throw') & ~exclusionthrow
 
-        # mark all images with the value of a following throw
-        exclusionimage = exclusionthrow.shift(periods=-1) & (data['trial_type'] == 'Image')
-        inclusionimage = inclusionthrow.shift(periods=-1) & (data['trial_type'] == 'Image')
-
-
         # updating clusivity
-        data['clusivity'][exclusionthrow | exclusionimage] = 'exclusion'
-        data['clusivity'][inclusionthrow | inclusionimage] = 'inclusion'
+        data.loc[exclusionthrow, 'clusivity'] = 'exclusion'
+        data.loc[inclusionthrow, 'clusivity'] = 'inclusion'
 
         return data
 
     def write(self, outputfile):
         if self.contents is not None:
-            self.contents.to_csv(outputfile, sep='\t', index=False)
+            self.contents.to_csv(outputfile, sep='\t', float_format='%.3f', na_rep='n/a', index=False)
 
 # specific types of stimuli in the task
 class HereWeGo:
@@ -122,18 +198,18 @@ class HereWeGo:
         # None values need to be calculated for each trial/subject from the subject file
         self.onset = None
         self.duration = None
-        self.trial_type = "HereWeGo"
-        self.response = "NA"
+        self.trial_type = 'HereWeGo'
+        self.response = 'n/a'
         self.reaction_time = np.nan
         self.reaction_scantime = np.nan
-        self.thrower = "NA"
-        self.catcher = "NA"
-        self.clusivity = "NA"
-        self.block = "NA"
-        self.throw_pattern = "NA"
-        self.image_number = "NA"
-        self.filenames = "NA"
-        self.image_durations = "NA"
+        self.thrower = 'n/a'
+        self.catcher = 'n/a'
+        self.clusivity = 'n/a'
+        self.block = 'n/a'
+        self.throw_pattern = 'n/a'
+        self.image_number = 'n/a'
+        self.filenames = 'n/a'
+        self.image_durations = 'n/a'
 
         # column headers of the specific data to import for this stimuli
         self.onsetField = ['getready1.OnsetTime', 'getready2.OnsetTime']
@@ -143,15 +219,27 @@ class HereWeGo:
 
     def clean(self, rawData, outputFields):
         # extract onset time
-        onset = rawData[self.onsetField].iloc[0]
-        onset = [onset['getready1.OnsetTime'], onset['getready2.OnsetTime']]
+        try:
+            onset = rawData[self.onsetField].iloc[0]
+            onset = [onset['getready1.OnsetTime'], onset['getready2.OnsetTime']]
+        except KeyError:
+            # SNAP 2, sub-14047_run-2 is missing the second HereWeGo stimuli
+            onset = [rawData['getready1.OnsetTime'].iloc[0]]
+
         onset = pandas.DataFrame(onset, columns=['onset'], dtype=int)
 
         # extract duration
-        duration = rawData[self.durationField].iloc[0]
-        herewego1_duration = duration['getready1.OffsetTime'] - duration['getready1.OnsetTime']
-        herewego2_duration = duration['getready2.OffsetTime'] - duration['getready2.OnsetTime']
-        duration = [herewego1_duration, herewego2_duration]
+        try:
+            duration = rawData[self.durationField].iloc[0]
+            herewego1_duration = duration['getready1.OffsetTime'] - duration['getready1.OnsetTime']
+            herewego2_duration = duration['getready2.OffsetTime'] - duration['getready2.OnsetTime']
+            duration = [herewego1_duration, herewego2_duration]
+        except KeyError:
+            # SNAP 2, sub-14047_run-2 missing second HereWeGo.
+            herewego1_offset = rawData['getready1.OffsetTime'].iloc[0]
+            herewego1_onset = rawData['getready1.OnsetTime'].iloc[0]
+            duration = [herewego1_offset - herewego1_onset]
+
         duration = pandas.DataFrame(duration, columns=['duration'], dtype=int)
 
         data = pandas.concat([onset, duration], axis=1)
@@ -171,18 +259,18 @@ class Rest:
         # None values need to be calculated for each trial/subject from the subject file
         self.onset = None
         self.duration = None
-        self.trial_type = "Rest"
-        self.response = "NA"
+        self.trial_type = 'Rest'
+        self.response = 'n/a'
         self.reaction_time = np.nan
         self.reaction_scantime = np.nan
-        self.thrower = "NA"
-        self.catcher = "NA"
-        self.clusivity = "NA"
-        self.block = "NA"
-        self.throw_pattern = "NA"
-        self.image_number = "NA"
-        self.filenames = "NA"
-        self.image_durations = "NA"
+        self.thrower = 'n/a'
+        self.catcher = 'n/a'
+        self.clusivity = 'n/a'
+        self.block = 'n/a'
+        self.throw_pattern = 'n/a'
+        self.image_number = 'n/a'
+        self.filenames = 'n/a'
+        self.image_durations = 'n/a'
 
         # column headers of the specific data to import for this stimuli
         self.onsetField = ['rest1.OnsetTime', 'rest2.OnsetTime', 'rest4.OnsetTime']
@@ -193,16 +281,48 @@ class Rest:
 
     def clean(self, rawData, outputFields):
         # extract onset time
-        onset = rawData[self.onsetField].iloc[0]
-        onset = [onset['rest1.OnsetTime'], onset['rest2.OnsetTime'], onset['rest4.OnsetTime']]
+        try:
+            onset = rawData[self.onsetField].iloc[0]
+            onset = [onset['rest1.OnsetTime'], onset['rest2.OnsetTime'], onset['rest4.OnsetTime']]
+        except KeyError:
+            # SNAP 2, sub-14047_run-2 is missing the second Rest stimuli
+            try:
+                remainingFields = [s for s in self.onsetField if s != 'rest2.OnsetTime']
+                onset = rawData[remainingFields].iloc[0]
+                onset = [onset['rest1.OnsetTime'], onset['rest4.OnsetTime']]
+            except KeyError:
+                # SNAP 2, sub-14047_run-1 and SNAP 3, sub-02007_run-1 are missing the last Rest stimuli
+                remainingFields = [s for s in self.onsetField if s != 'rest4.OnsetTime']
+                onset = rawData[remainingFields].iloc[0]
+                onset = [onset['rest1.OnsetTime'], onset['rest2.OnsetTime']]
+
         onset = pandas.DataFrame(onset, columns=['onset'], dtype=int)
 
         # extract duration
-        duration = rawData[self.durationField].iloc[0]
-        rest1_duration = duration['rest1.OffsetTime'] - duration['rest1.OnsetTime']
-        rest2_duration = duration['rest2.OffsetTime'] - duration['rest2.OnsetTime']
-        rest4_duration = duration['rest4.OffsetTime'] - duration['rest4.OnsetTime']
-        duration = [rest1_duration, rest2_duration, rest4_duration]
+        try:
+            duration = rawData[self.durationField].iloc[0]
+            rest1_duration = duration['rest1.OffsetTime'] - duration['rest1.OnsetTime']
+            rest2_duration = duration['rest2.OffsetTime'] - duration['rest2.OnsetTime']
+            rest4_duration = duration['rest4.OffsetTime'] - duration['rest4.OnsetTime']
+            duration = [rest1_duration, rest2_duration, rest4_duration]
+        except KeyError:
+            # sub-14047_run-2 missing second Rest.
+            try:
+                to_remove = ['rest2.OffsetTime', 'rest2.OnsetTime']
+                remainingFields = [f for f in self.durationField if f not in to_remove]
+                duration = rawData[remainingFields].iloc[0]
+                rest1_duration = duration['rest1.OffsetTime'] - duration['rest1.OnsetTime']
+                rest4_duration = duration['rest4.OffsetTime'] - duration['rest4.OnsetTime']
+                duration = [rest1_duration, rest4_duration]
+            except KeyError:
+                # sub-14047_run-1 and SNAP 3, sub-02007_run-1 are missing the last Rest.
+                to_remove = ['rest4.OffsetTime', 'rest4.OnsetTime']
+                remainingFields = [f for f in self.durationField if f not in to_remove]
+                duration = rawData[remainingFields].iloc[0]
+                rest1_duration = duration['rest1.OffsetTime'] - duration['rest1.OnsetTime']
+                rest2_duration = duration['rest2.OffsetTime'] - duration['rest2.OnsetTime']
+                duration = [rest1_duration, rest2_duration]
+
         duration = pandas.DataFrame(duration, columns=['duration'], dtype=int)
 
         data = pandas.concat([onset, duration], axis=1)
@@ -216,33 +336,33 @@ class Rest:
 
         return data
 
-class Image:
+class Decision:
     def __init__(self):
         # hard coded values are the same across all subjects and trials
         # None values need to be calculated for each trial/subject from the subject file
         self.onset = None
         self.duration = None
-        self.trial_type = "Image"
+        self.trial_type = 'Decision'
         self.response = None
         self.reaction_time = None
         self.reaction_scantime = None
-        self.thrower = "NA"
-        self.catcher = "NA"
-        self.clusivity = "NA" # note that this will be assigned after all data sorted by onset
-        self.block = "NA"
-        self.throw_pattern = "NA"
+        self.thrower = 'n/a'
+        self.catcher = 'n/a'
+        self.clusivity = 'inclusion'
+        self.block = 'n/a'
+        self.throw_pattern = 'n/a'
         self.image_number = None
-        self.filenames = "NA"
-        self.image_durations = "NA"
+        self.filenames = 'n/a'
+        self.image_durations = 'n/a'
 
         # column headers of the specific data to import for this stimuli
         # some fields may have variable number of headers, so use regex to match multiple headers
-        self.onsetField = ['ImageDisplay\d+.OnsetTime']
-        self.durationField = ['ImageDisplay\d+.OnsetTime', 'ImageDisplay\d+.OffsetTime']
-        self.responseField = ['ImageDisplay\d+.RESP']
-        self.reaction_timeField = ['ImageDisplay\d+.RT']
-        self.reaction_scantimeField = ['ImageDisplay\d+.RTTime']
-        self.image_numberField = ['ImageDisplay\d+.OnsetTime']
+        self.onsetField = [r'ImageDisplay\d+.OnsetTime']
+        self.durationField = [r'ImageDisplay\d+.OnsetTime', r'ImageDisplay\d+.OffsetTime']
+        self.responseField = [r'ImageDisplay\d+.RESP']
+        self.reaction_timeField = [r'ImageDisplay\d+.RT']
+        self.reaction_scantimeField = [r'ImageDisplay\d+.RTTime']
+        self.image_numberField = [r'ImageDisplay\d+.OnsetTime']
         self.inputFields = list(set(self.onsetField + self.durationField + self.responseField
                                     + self.reaction_timeField + self.reaction_scantimeField
                                     + self.image_numberField))
@@ -280,8 +400,8 @@ class Image:
                 response.append(rawData[h1].iloc[0])
                 reaction_time.append(rawData[h2].iloc[0])
                 reaction_scantime.append(rawData[h3].iloc[0])
-            except:
-                response.append("NA")
+            except KeyError:
+                response.append('n/a')
                 reaction_time.append(np.nan)
                 reaction_scantime.append(np.nan)
 
@@ -292,10 +412,10 @@ class Image:
 
         # recode response
         response = pandas.DataFrame(response, columns=['response'], dtype=str)
-        responseRecodeVals = {'2': "CHANGETHIS!!", '7': "CHANGETHIS!!", 'nan': "NA"}
+        responseRecodeVals = {'2': 'right', '7': 'left', 'nan': 'n/a'}
         response = response.replace({'response': responseRecodeVals})
 
-        no_response = (response['response'] == "NA")
+        no_response = (response['response'] == 'n/a')
         reaction_time = pandas.DataFrame(reaction_time, columns=['reaction_time'], dtype=pandas.Int64Dtype())
         reaction_time[no_response] = np.nan
         reaction_scantime = pandas.DataFrame(reaction_scantime, columns=['reaction_scantime'], dtype=pandas.Int64Dtype())
@@ -322,37 +442,37 @@ class Throw:
         # None values need to be calculated for each trial/subject from the subject file
         self.onset = None
         self.duration = None
-        self.trial_type = "Throw"
-        self.response = "NA"
+        self.trial_type = 'Throw'
+        self.response = 'n/a'
         self.reaction_time = np.nan
         self.reaction_scantime = np.nan
         self.thrower = None
         self.catcher = None
-        self.clusivity = "NA" # note that this will be assigned after all data sorted by onset
+        self.clusivity = 'n/a' # note that this will be assigned after all data sorted by onset
         self.block = None
         self.throw_pattern = None
-        self.image_number = "NA"
+        self.image_number = 'n/a'
         self.filenames = None
         self.image_durations = None
 
         # column headers of the specific data to import for this stimuli
-        # some fields may have variable number of headers, so use regex to match multiple headers
         self.onsetField = ['MyImageDisplay.OnsetTime']
+        self.offsetField = ['MyImageDisplay.OffsetTime']
         self.durationField = ['MyImageDisplay.OnsetTime', 'MyImageDisplay.OffsetTime']
         self.throwerField = ['filename']
         self.catcherField = ['filename']
         self.blockField = ['Block']
-        self.throw_patternField = ['Running\[Block\]|RunningBlock']
+        self.throw_patternField = [r'Running\[Block\]|RunningBlock']
         self.filenamesField = ['filename']
         self.image_durationsField = ['MyImageDisplay.OnsetTime', 'MyImageDisplay.OffsetTime']
-        self.inputFields = list(set(self.onsetField + self.durationField + self.throwerField
-                                    + self.catcherField + self.blockField + self.throw_patternField
-                                    + self.filenamesField + self.image_durationsField))
+        self.inputFields = list(set(self.onsetField + self.offsetField + self.durationField
+                                    + self.throwerField + self.catcherField + self.blockField
+                                    + self.throw_patternField + self.filenamesField + self.image_durationsField))
 
     def clean(self, rawData, outputFields):
         # data for all throw events are within the same columns
         # must parse filenames column to identify individual events
-        names = rawData['filename'].str.replace(r'.\d.bmp', '')
+        names = rawData['filename'].str.replace(r'\.\d\.bmp', '', regex=True)
         eventStart = (names != names.shift(periods=1))
         eventEnd = (names != names.shift(periods=-1))
 
@@ -361,24 +481,35 @@ class Throw:
         onset = onset.rename(columns={onset.columns[0]: 'onset'}).reset_index(drop=True)
 
         # calculate duration
-        offset = rawData['MyImageDisplay.OffsetTime'].loc[eventEnd].reset_index(drop=True)
-        duration = offset - onset['onset']
+        offset = rawData[self.offsetField].loc[eventEnd]
+        offset = offset.rename(columns={offset.columns[0]: 'offset'}).reset_index(drop=True)
+        duration = offset['offset'] - onset['onset']
         duration = duration.to_frame('duration').astype('Int64')
+
+        # ensure we have an end for every start and we're not misgrouping
+        assert (
+            len(eventStart[eventStart]) == len(eventEnd[eventEnd])
+            and onset['onset'].dropna().is_monotonic_increasing
+            and offset['offset'].dropna().is_monotonic_increasing
+            ), (
+                f'[ClassName: {self.__class__.__name__}] Data Integrity Error: '
+                'Mismatch between event starts/ends or unsorted onsets/offsets. '
+                'Check if rawData is sorted or contains gaps.'
+            )
 
         # extract thrower and recode
         thrower = rawData['filename'].loc[eventStart]
-        thrower = thrower.str.replace(r'to\d.\d.bmp', '')
-        # double cast as work around for pandas bug. See github.com/pandas-dev/pandas/pull/43949
-        thrower = thrower.reset_index(drop=True).to_frame('thrower').astype(float).astype('Int64')
-        throwerRecodeVals = {1: "bar", 2: "subject", 3: "foo"}
-        thrower = thrower.replace({"thrower": throwerRecodeVals})
+        thrower = thrower.str.replace(r'to\d\.\d\.bmp', '', regex=True)
+        thrower = thrower.reset_index(drop=True).to_frame('thrower')
+        throwerRecodeVals = {'1': 'player1', '2': 'subject', '3': 'player3'}
+        thrower = thrower.replace({'thrower': throwerRecodeVals})
 
         # extract catcher and recode
         catcher = rawData['filename'].loc[eventStart]
-        catcher = catcher.str.replace(r'\dto', '').str.replace(r'.\d.bmp', '')
-        catcher = catcher.reset_index(drop=True).to_frame('catcher').astype(float).astype('Int64')
-        catcherRecodeVals = {1: "bar", 2: "subject", 3: "foo"}
-        catcher = catcher.replace({"catcher": catcherRecodeVals})
+        catcher = catcher.str.replace(r'\dto', '', regex=True).str.replace(r'\.\d\.bmp', '', regex=True)
+        catcher = catcher.reset_index(drop=True).to_frame('catcher')
+        catcherRecodeVals = {'1': 'player1', '2': 'subject', '3': 'player3'}
+        catcher = catcher.replace({'catcher': catcherRecodeVals})
 
         # extract block
         block = rawData[self.blockField].loc[eventStart]
@@ -394,10 +525,11 @@ class Throw:
         filenames = []
         image_durations = []
         imgdurs = rawData['MyImageDisplay.OffsetTime'] - rawData['MyImageDisplay.OnsetTime']
+        imgdurs = imgdurs/1000 # convert from millisecond to seconds
         for i, (fname, imgdur) in enumerate(zip(rawData['filename'], imgdurs)):
             # some values missing in SNAP 2 data (last throw in sub-01008 specifically)
-            if pandas.isnull(fname): fname = "NA"
-            if pandas.isnull(imgdur): imgdur = "NA"
+            if pandas.isnull(fname): fname = 'n/a'
+            if pandas.isnull(imgdur): imgdur = 'n/a'
 
             if eventStart[i]:
                 if eventEnd[i]:  # for single image throw events where the start is also the end
@@ -429,10 +561,10 @@ class Throw:
         return data
 
 # path to data
-basefolder = "/g/Imaging/SNAP/Data/Task Behavioral Data for BIDS/"
-snap1datadir = basefolder + "SNAP 1/Cyberball (Catch)/"
-snap2datadir = basefolder + "SNAP 2/Cyberball (Catch)/"
-snap3datadir = basefolder + "SNAP 3/Cyberball (Catch)/"
+basefolder = '/g/Imaging/SNAP/Data/Task Behavioral Data for BIDS/'
+snap1datadir = basefolder + 'SNAP 1/Cyberball (Catch)/'
+snap2datadir = basefolder + 'SNAP 2/Cyberball (Catch)/'
+snap3datadir = basefolder + 'SNAP 3/Cyberball (Catch)/'
 snapdatadir = [snap1datadir, snap2datadir, snap3datadir]
 
 # getting list of files
@@ -442,29 +574,64 @@ snap3files = [f for f in listdir(snap3datadir) if isfile(join(snap3datadir, f))]
 snapfiles = [snap1files, snap2files, snap3files]
 
 # output folder
-snap1outdir = basefolder + "Converted Files/SNAP 1/Cyberball/"
-snap2outdir = basefolder + "Converted Files/SNAP 2/Cyberball/"
-snap3outdir = basefolder + "Converted Files/SNAP 3/Cyberball/"
+snap1outdir = basefolder + 'Converted Files/SNAP 1/Cyberball/'
+snap2outdir = basefolder + 'Converted Files/SNAP 2/Cyberball/'
+snap3outdir = basefolder + 'Converted Files/SNAP 3/Cyberball/'
 snapoutdir = [snap1outdir, snap2outdir, snap3outdir]
+
+VERBOSE = False # Toggle printing some logging info about malformed data to stdout.
 
 # read, clean, and write data
 seenIDs = []
 for datadir, files, outdir in zip(snapdatadir, snapfiles, snapoutdir):
-    for datafile in files:
-        thisData = Data(join(datadir, datafile))
-        subjID = str(''.join(filter(str.isdigit, datafile)))
+    files_with_throw_ghosts = 0 # tracking a problem that seems pervasive (see QC document)
+    for datafilename in files:
+        thisData = Data(join(datadir, datafilename))
+
+        # create the output file name
+        # - A handful of subjects have scans that were rerun for various reasons.
+        # - These have the string run-01, run-02, etc. added to the event files
+        # - to distinguish which file belongs to which run.
+        pattern = r'run-(\d+)'
+        match = re.search(pattern, datafilename)
+        runID = match.group(1) if match else '1'
+
+        # extract ID from whatever numbers are left after removing run.
+        strippedName = re.sub(pattern, "", datafilename)
+        subjID = str(''.join(filter(str.isdigit, strippedName)))
+
+        outputfile = ('sub-' + subjID.zfill(5) + '_task-cyberball_run-'
+                                                + runID + '_events.tsv')
 
         try:
             thisData.load()
             thisData.clean()
 
-            if subjID in seenIDs:
+            if VERBOSE:
+                # tracking some quality control info about malformed data.
+                if thisData.qc_flags['ghost_throws']:
+                    files_with_throw_ghosts += 1
+                if thisData.qc_flags['ghost_decisions']:
+                    print(f'Malformed Data: sub-{subjID} run-{runID}: ghost decisions')
+                if thisData.qc_flags['out_of_sequence_throws']:
+                    print(f'Malformed Data: sub-{subjID} run-{runID}: out of sequence throws')
+
+                # checking if previous onset+duration is falling far short of the recorded onset of the next event
+                expected = thisData.contents['onset'].shift() + thisData.contents['duration'].shift()
+                if ((thisData.contents['onset'] - expected).abs() > 1).iloc[1:].any():
+                    print(f'  WARNING: sub-{subjID} run-{runID}: onset gap > 1s detected')
+
+            if subjID + runID in seenIDs:
                 # making sure there is no duplicate file as this would silently overwrite output from the first file
                 raise Exception('Two file names found with the numbers {}. Rename to prevent overwriting.'.format(subjID))
             else:
-                seenIDs.append(subjID)
-                outputfile = "sub-" + subjID.zfill(5) + "_task-cyberball_run-01_events.tsv"
+                seenIDs.append(subjID + runID)
 
             thisData.write(join(outdir, outputfile))
         except:
-            raise Exception('Unable to process subject {}'.format(subjID))
+            raise Exception(f'Unable to process subject {subjID}, run {runID}')
+
+    if VERBOSE:
+        # printing some QC info about malformed data
+        if files_with_throw_ghosts == len(files):
+            print(f'All files in {datadir} contained ghost throw events.')
