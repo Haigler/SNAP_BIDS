@@ -11,16 +11,16 @@ Run example:
 They do not require input. Folder paths are hardcoded in the script and must be changed manually. A conda `environment.yml` and pip `requirements.txt` file have been provided to document package versions used.
 
 ## `move_eventfiles` script
-This shell script moves all event files for a specified task into the BIDS hierarchy. It verifies event files present against a manifest (`./manifest`) of expected files. See the QC tracking documents (in the `sourcedata` folder) for further information about missing files.
+This shell script moves all event files for a specified task into the BIDS hierarchy. It verifies event files present against a manifest (`./manifest`) of expected files and moves copies into both the `rawdata/<cohort/` and `derivatives/fMRIprep-<cohort>/` datasets. See the QC tracking documents (in the `sourcedata` folder) for further information about missing files.
+
+Must be run under `sudo`, which sets file ownership and permissions. Use `--dry-run` first to preview.
 
 Run example:
-`move_eventfiles.sh cyberball`
+`sudo bash move_eventfiles.sh --dry-run cyberball`
 
 Available tasks:
     + cyberball
     + **TK**
-
-Folder paths are hardcoded in the script and must be changed manually.
 
 ## Progress
 Below is the current state of the event file conversions.

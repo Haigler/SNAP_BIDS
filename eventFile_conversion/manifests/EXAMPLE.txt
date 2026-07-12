@@ -1,4 +1,4 @@
-# Expected event files for the cyberball task.
+# Expected event files for the task.
 # Lists all files intended to be moved (can leave problematic event files behind!).
 # One filename per line. Lines starting with # are ignored.
 #
