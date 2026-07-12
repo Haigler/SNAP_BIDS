@@ -1,20 +1,20 @@
 #!/bin/bash
+#!/bin/bash
 #
-# move_events.sh - copy converted task event files into the BIDS hierarchy.
+# move_eventfiles.sh - copy converted task event files into the BIDS hierarchy.
 #
-# Copies task event files (.tsv) into the BIDS directory hierarchy.
+# Copies task event files (.tsv) into the BIDS directory hierarchy from a staging area.
 # Each file is placed into BOTH the rawdata and derivatives trees:
-#   - rawdata:     copied verbatim (rawdata keeps the run-01 zero-padded form)
-#   - derivatives: the run label's zero-padding is stripped to match fMRIPrep
-#                  output (e.g. run-01 -> run-1, run-02 -> run-2), so each
-#                  events.tsv sits beside its corresponding preprocessed bold.
+#   - derivatives: copied verbatim; the converted files already use the unpadded
+#                  run label fMRIPrep produces (run-1, run-2)
+#   - rawdata:     the run label is zero-padded (run-1 -> run-01) to match the
+#                  bold filenames in rawdata
 # Both copies are required: the BIDS Inheritance Principle does not cross dataset
 # boundaries. The staging copy is left in place; nothing is deleted or moved.
 #
 # BEFORE each copy, ownership and permissions are set on the STAGING file, and
 # 'cp -p' carries them through to both destinations:
-#   - owner/group -> $OWNER:$GROUP  (set in SETTINGS; currently the placeholders
-#                                    dummy-user:dummy-group, to be filled in)
+#   - owner/group -> $OWNER:$GROUP  (set in SETTINGS)
 #   - owner perms -> left as-is  (not modified)
 #   - group       -> read only   (write and execute removed)
 #   - world       -> no access   (read, write, execute all removed)
@@ -25,18 +25,17 @@
 #
 # The staging file's original owner, group, and mode are saved beforehand and
 # restored once both copies are made, so staging is left exactly as it was found.
-# Be aware that if the script is aborted mid run this restoring might not happen.
+# Be aware that if the script is aborted mid-run this restoring might not happen.
 #
 # Must be run under sudo (chown/chmod require it). A dry run does not.
 #
-# Usage:   sudo bash move_events.sh [--dry-run] <task_name>
-# Example: sudo bash move_events.sh --dry-run cyberball
+# Usage:   sudo bash move_eventfiles.sh [--dry-run] <task_name>
+# Example: sudo bash move_eventfiles.sh --dry-run cyberball
 #
 # Run this from the directory that contains this script and manifests/.
 #
 # The task name is validated against ALLOWED_TASKS in the SETTINGS block, which
-# is the single place to edit when a new task is converted. Case is ignored, so
-# 'Cyberball' and 'cyberball' both work.
+# is the single place to edit when a new task is converted.
 #
 # The script expects:
 #   - Source files in the directories listed in STAGING_<cohort> (SETTINGS block),
@@ -53,9 +52,10 @@
 # deliberately leave a problematic event file behind:
 #   - a file listed in the manifest and found in staging is placed;
 #   - a file found in staging but NOT listed is reported and left untouched;
-#   - a file listed in the manifest but never found in staging is reported as MISSING.
-# The script exits non-zero if any file was MISSING, if a target func/ directory
-# was missing, or if a staging directory was missing. Files left behind on purpose
+#   - a file listed in the manifest but not placed is reported as NOT PLACED, whether
+#     it was never found in staging or was found but could not be copied.
+# The script exits non-zero if any listed file was NOT PLACED, if a target func/
+# directory was missing, or if a staging directory was missing. Files left behind on purpose
 # do not affect the exit code. A failed chown or cp aborts the script on the spot.
 
 set -e -u -o pipefail
