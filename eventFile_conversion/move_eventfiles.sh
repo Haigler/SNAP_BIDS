@@ -1,5 +1,4 @@
 #!/bin/bash
-#!/bin/bash
 #
 # move_eventfiles.sh - copy converted task event files into the BIDS hierarchy.
 #
@@ -16,7 +15,7 @@
 # 'cp -p' carries them through to both destinations:
 #   - owner/group -> $OWNER:$GROUP  (set in SETTINGS)
 #   - owner perms -> left as-is  (not modified)
-#   - group       -> read only   (write and execute removed)
+#   - group       -> read/write only   (execute removed)
 #   - world       -> no access   (read, write, execute all removed)
 # This ordering is deliberate. If the script is run without sudo, the chown fails
 # before anything has been written into the BIDS tree, rather than scattering
@@ -105,7 +104,7 @@ if [ "${1:-}" = '--dry-run' ]; then
 fi
 
 if [ $# -ne 1 ]; then
-    echo 'Usage: sudo bash move_events.sh [--dry-run] <task_name>'
+    echo 'Usage: sudo bash move_eventfiles.sh [--dry-run] <task_name>'
     exit 1
 fi
 
@@ -264,7 +263,7 @@ process_cohort() {
         original_mode=$(stat -c '%a' "$source_file")
 
         chown "${OWNER}:${GROUP}" "$source_file"
-        chmod g-wx,o-rwx "$source_file"
+        chmod g+rw,o-rwx "$source_file"
 
         cp -p "$source_file" "${rawdata_func}/${rawdata_name}"
         cp -p "$source_file" "${derivatives_func}/${filename}"
